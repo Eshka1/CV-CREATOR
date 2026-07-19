@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Browse Jobs</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+        .filters { margin-bottom: 20px; }
+        .filters select { margin-right: 10px; padding: 5px; }
+        .recommend-box { background: #eef6ff; border: 1px solid #b3d7ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .job-card { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .job-card h3 { margin: 0 0 5px 0; }
+        .job-card .meta { color: #555; font-size: 14px; margin-bottom: 10px; }
+        .job-card a { margin-right: 15px; text-decoration: none; color: #0066cc; font-weight: bold; }
+        .saved-tag { color: green; font-weight: bold; }
+        nav a { margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/resume">Resume</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/jobs">Browse Jobs</a>
+        <a href="/jobs/saved">Saved Jobs</a>
+        <a href="/applications">My Applications</a>
+    </nav>
+    <h1>Browse Jobs</h1>
+
+    {% if recommendations %}
+    <div class="recommend-box">
+        <strong>Recommended for you:</strong>
+        <ul>
+            {% for rec in recommendations %}
+            <li><a href="/jobs/{{ rec.id }}">{{ rec.title }}</a> — {{ rec.reason }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form class="filters" method="get" action="/jobs">
+        <select name="industry">
+            <option value="">All Industries</option>
+            {% for i in industries %}
+            <option value="{{ i }}" {% if filters.industry == i %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+        </select>
+        <select name="location">
+            <option value="">All Locations</option>
+            {% for l in locations %}
+            <option value="{{ l }}" {% if filters.location == l %}selected{% endif %}>{{ l }}</option>
+            {% endfor %}
+        </select>
+        <select name="experience">
+            <option value="">All Levels</option>
+            {% for e in experiences %}
+            <option value="{{ e }}" {% if filters.experience == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+        </select>
+        <select name="remote">
+            <option value="">Remote/On-site</option>
+            <option value="Remote" {% if filters.remote == "Remote" %}selected{% endif %}>Remote</option>
+            <option value="On-site" {% if filters.remote == "On-site" %}selected{% endif %}>On-site</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    {% for job in jobs %}
+    <div class="job-card">
+        <h3>{{ job.title }}</h3>
+        <div class="meta">{{ job.company }} • {{ job.location }} ({{ job.remote }}) • {{ job.experience }} • {{ job.salary }}</div>
+        <p>{{ job.description }}</p>
+        <p><strong>Required skills:</strong> {{ job.required_skills | join(", ") }}</p>
+
+        <a href="/jobs/{{ job.id }}">View Readiness Score →</a>
+
+        {% if job.id in saved_ids %}
+            <span class="saved-tag">✅ Saved</span>
+        {% else %}
+            <a href="/jobs/save/{{ job.id }}">Save this job</a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>

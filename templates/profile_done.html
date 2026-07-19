@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Profile is Ready</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #1a7f37; }
+        pre { background: #f5f5f5; padding: 16px; border-radius: 8px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>✅ Profile organized by Gemma 4</h1>
+    <p>This is your master profile record — Phase 2 (resume/portfolio) will read from this.</p>
+    <pre>{{ profile | tojson(indent=2) }}</pre>
+    <p><a href="/">← Add another profile</a></p>
+</body>
+</html>

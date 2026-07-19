@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ profile.personal.name }} — Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1c1f26; --paper:#fafaf9; --accent:#7a2635; --gold:#b08d57; --rule:#d9d6d1; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+  .hero { padding:96px 24px 64px; text-align:center; border-bottom:1px solid var(--rule); }
+  .hero h1 { font-family:'Source Serif 4',serif; font-size:3.2rem; margin:0 0 12px; }
+  .hero .location { color:#666; font-size:0.95rem; margin-bottom:24px; }
+  .hero .about { max-width:640px; margin:0 auto; font-size:1.1rem; line-height:1.7; color:#333; }
+  .accent-rule { width:48px; height:3px; background:var(--accent); margin:20px auto; }
+  section { max-width:800px; margin:0 auto; padding:48px 24px; }
+  h2 { font-family:'Source Serif 4',serif; font-size:0.95rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:24px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:20px; }
+  .card { background:#fff; border:1px solid var(--rule); border-radius:4px; padding:20px; }
+  .card h3 { margin:0 0 8px; font-size:1.05rem; }
+  .card p { margin:0; font-size:0.9rem; color:#444; }
+  .pill-list { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill { font-size:0.8rem; background:#f1efe9; border:1px solid var(--rule); padding:4px 10px; border-radius:3px; }
+  .exp-item { margin-bottom:16px; }
+  .exp-item .role { font-weight:600; }
+  .exp-item .meta { font-size:0.85rem; color:#666; }
+  footer { text-align:center; padding:32px; font-size:0.8rem; color:#888; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <h1>{{ profile.personal.name or "Your Name" }}</h1>
+    <div class="location">{{ profile.personal.location }}{% if profile.personal.email %} · {{ profile.personal.email }}{% endif %}</div>
+    <div class="accent-rule"></div>
+    <p class="about">{{ about_me }}</p>
+  </div>
+
+  {% if profile.projects %}
+  <section>
+    <h2>Projects</h2>
+    <div class="grid">
+      {% for p in profile.projects %}
+      <div class="card"><h3>{{ p.title }}</h3><p>{{ p.description }}</p></div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if profile.experience %}
+  <section>
+    <h2>Experience</h2>
+    {% for job in profile.experience %}
+    <div class="exp-item">
+      <div class="role">{{ job.role }} — {{ job.company }}</div>
+      <div class="meta">{{ job.duration }}</div>
+      <p>{{ job.description }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if profile.skills %}
+  <section>
+    <h2>Skills</h2>
+    <div class="pill-list">{% for s in profile.skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
+  </section>
+  {% endif %}
+
+  <footer>Built with ReadyGrad</footer>
+</body>
+</html>

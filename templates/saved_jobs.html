@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Saved Jobs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1c1f26; --paper:#fafaf9; --accent:#7a2635; --rule:#d9d6d1; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--ink); background:var(--paper); padding:40px 20px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-family:'Source Serif 4',serif; font-size:2rem; margin:0 0 24px; }
+  .top-links { margin-bottom:20px; font-size:0.9rem; }
+  .top-links a { color:var(--accent); text-decoration:none; }
+  .job-card { background:#fff; border:1px solid var(--rule); border-radius:6px; padding:20px 24px; margin-bottom:16px; }
+  .job-title { font-size:1.15rem; font-weight:600; margin:0; }
+  .job-meta { font-size:0.85rem; color:#666; margin:4px 0 10px; }
+  .job-desc { font-size:0.92rem; color:#333; }
+  .pill-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  .pill { font-size:0.78rem; background:#f1efe9; border:1px solid var(--rule); padding:3px 9px; border-radius:3px; }
+  .empty { color:#777; font-style:italic; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-links"><a href="/jobs">← Back to all jobs</a></div>
+  <h1>Saved Jobs</h1>
+  {% if jobs %}
+    {% for job in jobs %}
+    <div class="job-card">
+      <p class="job-title">{{ job.title }}</p>
+      <div class="job-meta">{{ job.company }} · {{ job.location }} ({{ job.remote }}) · {{ job.experience }} · {{ job.salary }}</div>
+      <div class="job-desc">{{ job.description }}</div>
+      <div class="pill-list">
+        {% for s in job.required_skills %}<span class="pill">{{ s }}</span>{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty">No saved jobs yet — go back and save a few.</p>
+  {% endif %}
+</div>
+</body>
+</html>

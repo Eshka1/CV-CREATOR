@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ReadyGrad — Build Your Profile</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #222; }
+        label { display: block; margin-top: 18px; font-weight: bold; }
+        input[type=text], textarea { width: 100%; padding: 8px; margin-top: 6px; box-sizing: border-box; }
+        textarea { height: 80px; }
+        button { margin-top: 24px; padding: 12px 24px; font-size: 16px; cursor: pointer; }
+        small { color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Build Your Career Profile</h1>
+    <p>Don't worry about formatting — write naturally, Gemma 4 will organize it for you.</p>
+
+    <form action="/submit-profile" method="POST">
+        <label>Full name</label>
+        <input type="text" name="name" required>
+
+        <label>Email</label>
+        <input type="text" name="email" required>
+
+        <label>Location</label>
+        <input type="text" name="location">
+
+        <label>Education <small>(school, degree, year — one per line is fine)</small></label>
+        <textarea name="education" placeholder="e.g. XYZ University, BSc Computer Science, 2026"></textarea>
+
+        <label>Work experience <small>(role, company, duration, what you did)</small></label>
+        <textarea name="experience" placeholder="e.g. Intern at ABC Corp, summer 2025, helped build a customer dashboard"></textarea>
+
+        <label>Skills <small>(comma separated is fine)</small></label>
+        <textarea name="skills" placeholder="e.g. Python, Flask, SQL, teamwork"></textarea>
+
+        <label>Projects <small>(title and what you built)</small></label>
+        <textarea name="projects" placeholder="e.g. Built a to-do list app using Flask and SQLite"></textarea>
+
+        <label>Certificates</label>
+        <textarea name="certificates" placeholder="e.g. Google Data Analytics Certificate, 2025"></textarea>
+
+        <button type="submit">Generate My Profile with Gemma 4</button>
+    </form>
+</body>
+</html>

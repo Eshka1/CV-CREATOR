@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ profile.personal.name }} — Resume</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#1c1f26; --paper:#fafaf9; --accent:#7a2635; --gold:#b08d57; --rule:#d9d6d1; }
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family:'Inter',system-ui,sans-serif; margin:0; padding:48px 20px; line-height:1.55; }
+  .sheet { max-width:720px; margin:0 auto; background:#fff; padding:56px 64px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  h1.name { font-family:'Source Serif 4',serif; font-size:2.4rem; font-weight:700; margin:0 0 4px; }
+  .contact { font-size:0.9rem; color:#555; margin-bottom:24px; }
+  .contact span:not(:last-child)::after { content:" · "; color:var(--rule); }
+  .summary { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:16px; margin:24px 0 36px; color:#2a2a2a; }
+  .target-tag { display:inline-block; font-size:0.75rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
+  h2.section { font-family:'Source Serif 4',serif; font-size:1.05rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); border-bottom:1px solid var(--rule); padding-bottom:6px; margin:32px 0 16px; }
+  .timeline { position:relative; padding-left:20px; }
+  .timeline::before { content:""; position:absolute; left:4px; top:6px; bottom:6px; width:1px; background:var(--rule); }
+  .entry { position:relative; margin-bottom:20px; }
+  .entry::before { content:""; position:absolute; left:-20px; top:5px; width:8px; height:8px; border-radius:50%; background:var(--accent); }
+  .entry-title { font-weight:600; font-size:1rem; }
+  .entry-meta { font-size:0.85rem; color:#666; margin-bottom:4px; }
+  .entry-desc { font-size:0.92rem; color:#333; }
+  .pill-list { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill { font-size:0.8rem; background:#f1efe9; border:1px solid var(--rule); padding:4px 10px; border-radius:3px; }
+  .print-btn { max-width:720px; margin:0 auto 24px; text-align:right; }
+  .print-btn button { background:var(--accent); color:#fff; border:none; padding:10px 18px; font-size:0.85rem; cursor:pointer; border-radius:3px; }
+  .print-btn button:hover { background:#611e29; }
+  @media print { .print-btn { display:none; } body { padding:0; background:#fff; } .sheet { box-shadow:none; padding:0; } }
+</style>
+</head>
+<body>
+  <div class="print-btn"><button onclick="window.print()">Download as PDF</button></div>
+  <div class="sheet">
+    {% if target %}<div class="target-tag">Tailored for {{ target }}</div>{% endif %}
+    <h1 class="name">{{ profile.personal.name or "Your Name" }}</h1>
+    <div class="contact">
+      {% if profile.personal.email %}<span>{{ profile.personal.email }}</span>{% endif %}
+      {% if profile.personal.location %}<span>{{ profile.personal.location }}</span>{% endif %}
+    </div>
+    <p class="summary">{{ summary }}</p>
+
+    {% if profile.experience %}
+    <h2 class="section">Experience</h2>
+    <div class="timeline">
+      {% for job in profile.experience %}
+      <div class="entry">
+        <div class="entry-title">{{ job.role }} — {{ job.company }}</div>
+        <div class="entry-meta">{{ job.duration }}</div>
+        <div class="entry-desc">{{ job.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if profile.projects %}
+    <h2 class="section">Projects</h2>
+    <div class="timeline">
+      {% for p in profile.projects %}
+      <div class="entry">
+        <div class="entry-title">{{ p.title }}</div>
+        <div class="entry-desc">{{ p.description }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if profile.education %}
+    <h2 class="section">Education</h2>
+    <div class="timeline">
+      {% for e in profile.education %}
+      <div class="entry">
+        <div class="entry-title">{{ e.degree }}, {{ e.school }}</div>
+        <div class="entry-meta">{{ e.year }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if profile.skills %}
+    <h2 class="section">Skills</h2>
+    <div class="pill-list">{% for s in profile.skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
+    {% endif %}
+
+    {% if profile.certificates %}
+    <h2 class="section">Certificates</h2>
+    <div class="pill-list">{% for c in profile.certificates %}<span class="pill">{{ c }}</span>{% endfor %}</div>
+    {% endif %}
+  </div>
+</body>
+</html>
