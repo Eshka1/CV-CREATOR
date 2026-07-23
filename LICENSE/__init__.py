@@ -1,178 +1,236 @@
-#   __
-#  /__)  _  _     _   _ _/   _
-# / (   (- (/ (/ (- _)  /  _)
-#          /
+from __future__ import annotations
 
-"""
-Requests HTTP Library
-~~~~~~~~~~~~~~~~~~~~~
+# Importing the typing module would conflict with websockets.typing.
+from typing import TYPE_CHECKING
 
-Requests is an HTTP library, written in Python, for human beings.
-Basic GET usage:
-
-   >>> import requests
-   >>> r = requests.get('https://www.python.org')
-   >>> r.status_code
-   200
-   >>> b'Python is a programming language' in r.content
-   True
-
-... or POST:
-
-   >>> payload = dict(key1='value1', key2='value2')
-   >>> r = requests.post('https://httpbin.org/post', data=payload)
-   >>> print(r.text)
-   {
-     ...
-     "form": {
-       "key1": "value1",
-       "key2": "value2"
-     },
-     ...
-   }
-
-The other HTTP methods are supported - see `requests.api`. Full documentation
-is at <https://requests.readthedocs.io>.
-
-:copyright: (c) 2017 by Kenneth Reitz.
-:license: Apache 2.0, see LICENSE for more details.
-"""
-
-import warnings
-
-from pip._vendor import urllib3
-
-from .exceptions import RequestsDependencyWarning
-
-charset_normalizer_version = None
-chardet_version = None
+from .imports import lazy_import
+from .version import version as __version__  # noqa: F401
 
 
-def check_compatibility(urllib3_version, chardet_version, charset_normalizer_version):
-    urllib3_version = urllib3_version.split(".")
-    assert urllib3_version != ["dev"]  # Verify urllib3 isn't installed from git.
+__all__ = [
+    # .asyncio.client
+    "connect",
+    "unix_connect",
+    "ClientConnection",
+    # .asyncio.router
+    "route",
+    "unix_route",
+    "Router",
+    # .asyncio.server
+    "basic_auth",
+    "broadcast",
+    "serve",
+    "unix_serve",
+    "ServerConnection",
+    "Server",
+    # .client
+    "ClientProtocol",
+    # .datastructures
+    "Headers",
+    "HeadersLike",
+    "MultipleValuesError",
+    # .exceptions
+    "ConcurrencyError",
+    "ConnectionClosed",
+    "ConnectionClosedError",
+    "ConnectionClosedOK",
+    "DuplicateParameter",
+    "InvalidHandshake",
+    "InvalidHeader",
+    "InvalidHeaderFormat",
+    "InvalidHeaderValue",
+    "InvalidMessage",
+    "InvalidOrigin",
+    "InvalidParameterName",
+    "InvalidParameterValue",
+    "InvalidProxy",
+    "InvalidProxyMessage",
+    "InvalidProxyStatus",
+    "InvalidState",
+    "InvalidStatus",
+    "InvalidUpgrade",
+    "InvalidURI",
+    "NegotiationError",
+    "PayloadTooBig",
+    "ProtocolError",
+    "ProxyError",
+    "SecurityError",
+    "WebSocketException",
+    # .frames
+    "Close",
+    "CloseCode",
+    "Frame",
+    "Opcode",
+    # .http11
+    "Request",
+    "Response",
+    # .protocol
+    "Protocol",
+    "Side",
+    "State",
+    # .server
+    "ServerProtocol",
+    # .typing
+    "Data",
+    "ExtensionName",
+    "ExtensionParameter",
+    "LoggerLike",
+    "StatusLike",
+    "Origin",
+    "Subprotocol",
+]
 
-    # Sometimes, urllib3 only reports its version as 16.1.
-    if len(urllib3_version) == 2:
-        urllib3_version.append("0")
-
-    # Check urllib3 for compatibility.
-    major, minor, patch = urllib3_version  # noqa: F811
-    major, minor, patch = int(major), int(minor), int(patch)
-    # urllib3 >= 1.21.1
-    assert major >= 1
-    if major == 1:
-        assert minor >= 21
-
-    # Check charset_normalizer for compatibility.
-    if chardet_version:
-        major, minor, patch = chardet_version.split(".")[:3]
-        major, minor, patch = int(major), int(minor), int(patch)
-        # chardet_version >= 3.0.2, < 8.0.0
-        assert (3, 0, 2) <= (major, minor, patch) < (8, 0, 0)
-    elif charset_normalizer_version:
-        major, minor, patch = charset_normalizer_version.split(".")[:3]
-        major, minor, patch = int(major), int(minor), int(patch)
-        # charset_normalizer >= 2.0.0 < 4.0.0
-        assert (2, 0, 0) <= (major, minor, patch) < (4, 0, 0)
-    else:
-        # pip does not need or use character detection
-        pass
-
-
-def _check_cryptography(cryptography_version):
-    # cryptography < 1.3.4
-    try:
-        cryptography_version = list(map(int, cryptography_version.split(".")))
-    except ValueError:
-        return
-
-    if cryptography_version < [1, 3, 4]:
-        warning = (
-            f"Old version of cryptography ({cryptography_version}) may cause slowdown."
-        )
-        warnings.warn(warning, RequestsDependencyWarning)
-
-
-# Check imported dependencies for compatibility.
-try:
-    check_compatibility(
-        urllib3.__version__, chardet_version, charset_normalizer_version
+# When type checking, import non-deprecated aliases eagerly. Else, import on demand.
+if TYPE_CHECKING:
+    from .asyncio.client import ClientConnection, connect, unix_connect
+    from .asyncio.router import Router, route, unix_route
+    from .asyncio.server import (
+        Server,
+        ServerConnection,
+        basic_auth,
+        broadcast,
+        serve,
+        unix_serve,
     )
-except (AssertionError, ValueError):
-    warnings.warn(
-        f"urllib3 ({urllib3.__version__}) or chardet "
-        f"({chardet_version})/charset_normalizer ({charset_normalizer_version}) "
-        "doesn't match a supported version!",
-        RequestsDependencyWarning,
+    from .client import ClientProtocol
+    from .datastructures import Headers, HeadersLike, MultipleValuesError
+    from .exceptions import (
+        ConcurrencyError,
+        ConnectionClosed,
+        ConnectionClosedError,
+        ConnectionClosedOK,
+        DuplicateParameter,
+        InvalidHandshake,
+        InvalidHeader,
+        InvalidHeaderFormat,
+        InvalidHeaderValue,
+        InvalidMessage,
+        InvalidOrigin,
+        InvalidParameterName,
+        InvalidParameterValue,
+        InvalidProxy,
+        InvalidProxyMessage,
+        InvalidProxyStatus,
+        InvalidState,
+        InvalidStatus,
+        InvalidUpgrade,
+        InvalidURI,
+        NegotiationError,
+        PayloadTooBig,
+        ProtocolError,
+        ProxyError,
+        SecurityError,
+        WebSocketException,
     )
-
-# Attempt to enable urllib3's fallback for SNI support
-# if the standard library doesn't support SNI or the
-# 'ssl' library isn't available.
-try:
-    # Note: This logic prevents upgrading cryptography on Windows, if imported
-    #       as part of pip.
-    from pip._internal.utils.compat import WINDOWS
-    if not WINDOWS:
-        raise ImportError("pip internals: don't import cryptography on Windows")
-    try:
-        import ssl
-    except ImportError:
-        ssl = None
-
-    if not getattr(ssl, "HAS_SNI", False):
-        from pip._vendor.urllib3.contrib import pyopenssl
-
-        pyopenssl.inject_into_urllib3()
-
-        # Check cryptography version
-        from cryptography import __version__ as cryptography_version
-
-        _check_cryptography(cryptography_version)
-except ImportError:
-    pass
-
-# urllib3's DependencyWarnings should be silenced.
-from pip._vendor.urllib3.exceptions import DependencyWarning
-
-warnings.simplefilter("ignore", DependencyWarning)
-
-# Set default logging handler to avoid "No handler found" warnings.
-import logging
-from logging import NullHandler
-
-from . import packages, utils
-from .__version__ import (
-    __author__,
-    __author_email__,
-    __build__,
-    __cake__,
-    __copyright__,
-    __description__,
-    __license__,
-    __title__,
-    __url__,
-    __version__,
-)
-from .api import delete, get, head, options, patch, post, put, request
-from .exceptions import (
-    ConnectionError,
-    ConnectTimeout,
-    FileModeWarning,
-    HTTPError,
-    JSONDecodeError,
-    ReadTimeout,
-    RequestException,
-    Timeout,
-    TooManyRedirects,
-    URLRequired,
-)
-from .models import PreparedRequest, Request, Response
-from .sessions import Session, session
-from .status_codes import codes
-
-logging.getLogger(__name__).addHandler(NullHandler())
-
-# FileModeWarnings go off per the default.
-warnings.simplefilter("default", FileModeWarning, append=True)
+    from .frames import Close, CloseCode, Frame, Opcode
+    from .http11 import Request, Response
+    from .protocol import Protocol, Side, State
+    from .server import ServerProtocol
+    from .typing import (
+        Data,
+        ExtensionName,
+        ExtensionParameter,
+        LoggerLike,
+        Origin,
+        StatusLike,
+        Subprotocol,
+    )
+else:
+    lazy_import(
+        globals(),
+        aliases={
+            # .asyncio.client
+            "connect": ".asyncio.client",
+            "unix_connect": ".asyncio.client",
+            "ClientConnection": ".asyncio.client",
+            # .asyncio.router
+            "route": ".asyncio.router",
+            "unix_route": ".asyncio.router",
+            "Router": ".asyncio.router",
+            # .asyncio.server
+            "basic_auth": ".asyncio.server",
+            "broadcast": ".asyncio.server",
+            "serve": ".asyncio.server",
+            "unix_serve": ".asyncio.server",
+            "ServerConnection": ".asyncio.server",
+            "Server": ".asyncio.server",
+            # .client
+            "ClientProtocol": ".client",
+            # .datastructures
+            "Headers": ".datastructures",
+            "HeadersLike": ".datastructures",
+            "MultipleValuesError": ".datastructures",
+            # .exceptions
+            "ConcurrencyError": ".exceptions",
+            "ConnectionClosed": ".exceptions",
+            "ConnectionClosedError": ".exceptions",
+            "ConnectionClosedOK": ".exceptions",
+            "DuplicateParameter": ".exceptions",
+            "InvalidHandshake": ".exceptions",
+            "InvalidHeader": ".exceptions",
+            "InvalidHeaderFormat": ".exceptions",
+            "InvalidHeaderValue": ".exceptions",
+            "InvalidMessage": ".exceptions",
+            "InvalidOrigin": ".exceptions",
+            "InvalidParameterName": ".exceptions",
+            "InvalidParameterValue": ".exceptions",
+            "InvalidProxy": ".exceptions",
+            "InvalidProxyMessage": ".exceptions",
+            "InvalidProxyStatus": ".exceptions",
+            "InvalidState": ".exceptions",
+            "InvalidStatus": ".exceptions",
+            "InvalidUpgrade": ".exceptions",
+            "InvalidURI": ".exceptions",
+            "NegotiationError": ".exceptions",
+            "PayloadTooBig": ".exceptions",
+            "ProtocolError": ".exceptions",
+            "ProxyError": ".exceptions",
+            "SecurityError": ".exceptions",
+            "WebSocketException": ".exceptions",
+            # .frames
+            "Close": ".frames",
+            "CloseCode": ".frames",
+            "Frame": ".frames",
+            "Opcode": ".frames",
+            # .http11
+            "Request": ".http11",
+            "Response": ".http11",
+            # .protocol
+            "Protocol": ".protocol",
+            "Side": ".protocol",
+            "State": ".protocol",
+            # .server
+            "ServerProtocol": ".server",
+            # .typing
+            "Data": ".typing",
+            "ExtensionName": ".typing",
+            "ExtensionParameter": ".typing",
+            "LoggerLike": ".typing",
+            "Origin": ".typing",
+            "StatusLike": ".typing",
+            "Subprotocol": ".typing",
+        },
+        deprecated_aliases={
+            # deprecated in 9.0 - 2021-09-01
+            "framing": ".legacy",
+            "handshake": ".legacy",
+            "parse_uri": ".uri",
+            "WebSocketURI": ".uri",
+            # deprecated in 14.0 - 2024-11-09
+            # .legacy.auth
+            "BasicAuthWebSocketServerProtocol": ".legacy.auth",
+            "basic_auth_protocol_factory": ".legacy.auth",
+            # .legacy.client
+            "WebSocketClientProtocol": ".legacy.client",
+            # .legacy.exceptions
+            "AbortHandshake": ".legacy.exceptions",
+            "InvalidStatusCode": ".legacy.exceptions",
+            "RedirectHandshake": ".legacy.exceptions",
+            "WebSocketProtocolError": ".legacy.exceptions",
+            # .legacy.protocol
+            "WebSocketCommonProtocol": ".legacy.protocol",
+            # .legacy.server
+            "WebSocketServer": ".legacy.server",
+            "WebSocketServerProtocol": ".legacy.server",
+        },
+    )
