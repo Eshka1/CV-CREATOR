@@ -1,37 +1,27 @@
 """Module containing bug report helper(s)."""
 
-# pyright: reportUnknownMemberType=false
-
 import json
 import platform
 import ssl
 import sys
-from typing import Any
 
-import idna
-import urllib3
+from pip._vendor import idna
+from pip._vendor import urllib3
 
 from . import __version__ as requests_version
 
-try:
-    import charset_normalizer
-except ImportError:
-    charset_normalizer = None
+charset_normalizer = None
+chardet = None
 
 try:
-    import chardet  # type: ignore[import-not-found]
-except ImportError:
-    chardet = None
-
-try:
-    from urllib3.contrib import pyopenssl
+    from pip._vendor.urllib3.contrib import pyopenssl
 except ImportError:
     pyopenssl = None
     OpenSSL = None
     cryptography = None
 else:
-    import cryptography  # type: ignore[import-not-found]
-    import OpenSSL  # type: ignore[import-not-found]
+    import cryptography
+    import OpenSSL
 
 
 def _implementation():
@@ -50,11 +40,11 @@ def _implementation():
     if implementation == "CPython":
         implementation_version = platform.python_version()
     elif implementation == "PyPy":
-        pypy = sys.pypy_version_info  # type: ignore[attr-defined]
+        pypy = sys.pypy_version_info
         implementation_version = f"{pypy.major}.{pypy.minor}.{pypy.micro}"
-        if sys.pypy_version_info.releaselevel != "final":  # type: ignore[attr-defined]
+        if sys.pypy_version_info.releaselevel != "final":
             implementation_version = "".join(
-                [implementation_version, sys.pypy_version_info.releaselevel]  # type: ignore[attr-defined]
+                [implementation_version, sys.pypy_version_info.releaselevel]
             )
     elif implementation == "Jython":
         implementation_version = platform.python_version()  # Complete Guess
@@ -66,7 +56,7 @@ def _implementation():
     return {"name": implementation, "version": implementation_version}
 
 
-def info() -> dict[str, Any]:
+def info():
     """Generate information for a bug report."""
     try:
         platform_info = {
@@ -80,15 +70,15 @@ def info() -> dict[str, Any]:
         }
 
     implementation_info = _implementation()
-    urllib3_info = {"version": urllib3.__version__}  # type: ignore[reportPrivateImportUsage]
+    urllib3_info = {"version": urllib3.__version__}
     charset_normalizer_info = {"version": None}
-    chardet_info: dict[str, str | None] = {"version": None}
+    chardet_info = {"version": None}
     if charset_normalizer:
         charset_normalizer_info = {"version": charset_normalizer.__version__}
     if chardet:
         chardet_info = {"version": chardet.__version__}
 
-    pyopenssl_info: dict[str, str | None] = {
+    pyopenssl_info = {
         "version": None,
         "openssl_version": "",
     }
@@ -105,7 +95,7 @@ def info() -> dict[str, Any]:
     }
 
     system_ssl = ssl.OPENSSL_VERSION_NUMBER
-    system_ssl_info = {"version": f"{system_ssl:x}" if system_ssl is not None else ""}  # type: ignore[reportUnnecessaryComparison]
+    system_ssl_info = {"version": f"{system_ssl:x}" if system_ssl is not None else ""}
 
     return {
         "platform": platform_info,
