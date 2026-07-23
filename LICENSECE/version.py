@@ -13,14 +13,4 @@
 # limitations under the License.
 #
 
-"""Google Gen AI SDK"""
-
-from . import interactions
-from . import types
-from . import version
-from .client import Client
-
-
-__version__ = version.__version__
-
-__all__ = ['Client']
+__version__ = '2.14.0' # x-release-please-version
