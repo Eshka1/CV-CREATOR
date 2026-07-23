@@ -20,6 +20,15 @@ SKIP_HEADER = "@@@SKIP_HEADER@@@"
 SKIPPABLE_HEADERS = frozenset(["accept-encoding", "host", "user-agent"])
 
 ACCEPT_ENCODING = "gzip,deflate"
+try:
+    try:
+        import brotlicffi as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+    except ImportError:
+        import brotli as _unused_module_brotli  # type: ignore[import-not-found] # noqa: F401
+except ImportError:
+    pass
+else:
+    ACCEPT_ENCODING += ",br"
 
 try:
     if sys.version_info >= (3, 14):
@@ -91,7 +100,7 @@ def make_headers(
 
     .. code-block:: python
 
-        from pip._vendor import urllib3
+        import urllib3
 
         print(urllib3.util.make_headers(keep_alive=True, user_agent="Batman/1.0"))
         # {'connection': 'keep-alive', 'user-agent': 'Batman/1.0'}
