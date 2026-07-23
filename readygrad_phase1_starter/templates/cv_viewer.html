@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadyGrad — CV Viewer ({{ cv.job_title }})</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #08090d;
+            --control-bg: rgba(18, 20, 29, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-color: #ffffff;
+            --accent-cyan: #00f2fe;
+            --accent-purple: #7f00ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 80px;
+            padding-bottom: 40px;
+            overflow-y: auto;
+        }
+
+        /* Control bar */
+        .control-bar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            background: var(--control-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 50px;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            color: white;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+        }
+
+        .btn-download:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* CV A4 Sheet Container */
+        .cv-page-container {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            color: #2c3e50;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Default photo fallback */
+        .profile-photo-placeholder {
+            background: #e2e8f0;
+            color: #718096;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+        }
+
+        /* ========================================================
+           TEMPLATE 1: dark_diagonal_sidebar (Jenna Melinda Style)
+           ======================================================== */
+        .layout-dark_diagonal_sidebar {
+            display: flex;
+            min-height: 297mm;
+            background: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #23252a));
+            color: #ffffff;
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--theme-accent, var(--theme-accent, #D97B29));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar .skill-item {
+            margin-bottom: 12px;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar .skill-name {
+            font-size: 12px;
+            color: #e2e8f0;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar .skill-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .layout-dark_diagonal_sidebar .sidebar .skill-bar-fill {
+            height: 100%;
+            background: var(--theme-accent, var(--theme-accent, #D97B29));
+        }
+
+        .layout-dark_diagonal_sidebar .main-panel {
+            width: 65%;
+            padding: 40px 35px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+        }
+
+        .layout-dark_diagonal_sidebar .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .layout-dark_diagonal_sidebar .name-title {
+            max-width: 70%;
+        }
+
+        .layout-dark_diagonal_sidebar .name-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--theme-sidebar, var(--theme-sidebar, #23252a));
+            line-height: 1.1;
+        }
+
+        .layout-dark_diagonal_sidebar .name-title h1 span {
+            color: var(--theme-accent, var(--theme-accent, #D97B29));
+        }
+
+        .layout-dark_diagonal_sidebar .name-title p {
+            font-size: 15px;
+            color: #718096;
+            margin-top: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .layout-dark_diagonal_sidebar .photo-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            background: #f7fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-dark_diagonal_sidebar .photo-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-dark_diagonal_sidebar .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #23252a));
+            border-bottom: 2px solid var(--theme-accent, var(--theme-accent, #D97B29));
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .layout-dark_diagonal_sidebar .timeline-item {
+            margin-bottom: 20px;
+        }
+
+        .layout-dark_diagonal_sidebar .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: var(--theme-sidebar, var(--theme-sidebar, #23252a));
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .layout-dark_diagonal_sidebar .timeline-meta {
+            font-size: 12px;
+            color: var(--theme-accent, var(--theme-accent, #D97B29));
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .layout-dark_diagonal_sidebar .timeline-desc {
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           TEMPLATE 2: warm_geometric_split (Connor Hamilton Style)
+           ======================================================== */
+        .layout-warm_geometric_split {
+            display: flex;
+            min-height: 297mm;
+            background: #EDECE8;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2e2a26));
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-warm_geometric_split .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #2e2a26));
+            color: #EDECE8;
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-warm_geometric_split .photo-box {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 5px solid #EDECE8;
+            overflow: hidden;
+            background: #EDECE8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: center;
+            margin-bottom: 10px;
+        }
+
+        .layout-warm_geometric_split .photo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-warm_geometric_split .sidebar-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--theme-accent, var(--theme-accent, #B97D4B));
+            border-bottom: 1px solid rgba(237, 236, 232, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        .layout-warm_geometric_split .sidebar-section ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .layout-warm_geometric_split .skill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .layout-warm_geometric_split .stars {
+            color: var(--theme-accent, var(--theme-accent, #B97D4B));
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+
+        .layout-warm_geometric_split .main-panel {
+            width: 65%;
+            padding: 40px 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-warm_geometric_split .header-banner {
+            background: var(--theme-accent, var(--theme-accent, #B97D4B));
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+        }
+
+        .layout-warm_geometric_split .header-banner h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .layout-warm_geometric_split .header-banner p {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .layout-warm_geometric_split .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2e2a26));
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layout-warm_geometric_split .section h2::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(46, 42, 38, 0.15);
+        }
+
+        .layout-warm_geometric_split .timeline {
+            position: relative;
+            padding-left: 20px;
+            border-left: 1px solid rgba(46, 42, 38, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .layout-warm_geometric_split .timeline-dot {
+            position: absolute;
+            left: -5px;
+            width: 9px;
+            height: 9px;
+            background: var(--theme-accent, var(--theme-accent, #B97D4B));
+            border-radius: 50%;
+            top: 6px;
+        }
+
+        .layout-warm_geometric_split .entry {
+            position: relative;
+        }
+
+        .layout-warm_geometric_split .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2e2a26));
+        }
+
+        .layout-warm_geometric_split .entry-meta {
+            font-size: 12px;
+            color: var(--theme-accent, var(--theme-accent, #B97D4B));
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-warm_geometric_split .entry-desc {
+            font-size: 13px;
+            color: #4a4540;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           TEMPLATE 3: arch_photo_two_tone (Jonathan Patterson Style)
+           ======================================================== */
+        .layout-arch_photo_two_tone {
+            display: flex;
+            min-height: 297mm;
+            background: #ffffff;
+            color: #1a1a1a;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-arch_photo_two_tone .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #E4E3DF));
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-arch_photo_two_tone .photo-arch {
+            width: 140px;
+            height: 180px;
+            border-radius: 70px 70px 0 0;
+            overflow: hidden;
+            background: #d4d3cf;
+            align-self: center;
+            border: 4px solid #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-arch_photo_two_tone .photo-arch img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-arch_photo_two_tone .sidebar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--theme-accent, var(--theme-accent, #6E6D68));
+            padding-bottom: 4px;
+            margin-bottom: 12px;
+        }
+
+        .layout-arch_photo_two_tone .main-panel {
+            width: 65%;
+            padding: 0 0 40px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-arch_photo_two_tone .header-band {
+            background: var(--theme-accent, var(--theme-accent, #6E6D68));
+            color: white;
+            padding: 40px 35px;
+        }
+
+        .layout-arch_photo_two_tone .header-band h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .layout-arch_photo_two_tone .header-band p {
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 6px;
+            color: #d4d3cf;
+        }
+
+        .layout-arch_photo_two_tone .main-content {
+            padding: 0 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-arch_photo_two_tone .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-accent, var(--theme-accent, #6E6D68));
+            border-bottom: 2px solid var(--theme-sidebar, var(--theme-sidebar, #E4E3DF));
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .layout-arch_photo_two_tone .entry {
+            margin-bottom: 20px;
+        }
+
+        .layout-arch_photo_two_tone .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .layout-arch_photo_two_tone .entry-meta {
+            font-size: 12px;
+            color: var(--theme-accent, var(--theme-accent, #6E6D68));
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-arch_photo_two_tone .entry-desc {
+            font-size: 13px;
+            color: #4a4a4a;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           TEMPLATE 4: navy_gold_sidebar (Lorna Alvarado Style)
+           ======================================================== */
+        .layout-navy_gold_sidebar {
+            display: flex;
+            min-height: 297mm;
+            background: #ffffff;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2E3A4D));
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-navy_gold_sidebar .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #2E3A4D));
+            color: #ffffff;
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-navy_gold_sidebar .photo-gold-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--theme-accent, var(--theme-accent, #C9A24B));
+            padding: 4px;
+            overflow: hidden;
+            background: #ffffff;
+            align-self: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .layout-navy_gold_sidebar .photo-gold-ring img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .layout-navy_gold_sidebar .sidebar-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-accent, var(--theme-accent, #C9A24B));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        .layout-navy_gold_sidebar .sidebar-section ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .layout-navy_gold_sidebar .main-panel {
+            width: 65%;
+            padding: 45px 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-navy_gold_sidebar .header {
+            border-bottom: 2px solid var(--theme-accent, var(--theme-accent, #C9A24B));
+            padding-bottom: 20px;
+        }
+
+        .layout-navy_gold_sidebar .header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 34px;
+            font-weight: 800;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2E3A4D));
+        }
+
+        .layout-navy_gold_sidebar .header p {
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--theme-accent, var(--theme-accent, #C9A24B));
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .layout-navy_gold_sidebar .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2E3A4D));
+            border-bottom: 1px solid rgba(46, 58, 77, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .layout-navy_gold_sidebar .entry {
+            margin-bottom: 20px;
+        }
+
+        .layout-navy_gold_sidebar .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--theme-sidebar, var(--theme-sidebar, #2E3A4D));
+        }
+
+        .layout-navy_gold_sidebar .entry-meta {
+            font-size: 12px;
+            color: var(--theme-accent, var(--theme-accent, #C9A24B));
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-navy_gold_sidebar .entry-desc {
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           TEMPLATE 5: sage_photo_block (Catrine Ziv Style)
+           ======================================================== */
+        .layout-sage_photo_block {
+            display: flex;
+            min-height: 297mm;
+            background: #F3F1EA;
+            color: #2A2A2A;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-sage_photo_block .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #9BA88F));
+            display: flex;
+            flex-direction: column;
+        }
+
+        .layout-sage_photo_block .photo-rect {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            background: #7a876e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-sage_photo_block .photo-rect img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-sage_photo_block .sidebar-content {
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .layout-sage_photo_block .sidebar-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1.5px solid #2A2A2A;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+        }
+
+        .layout-sage_photo_block .sidebar-section ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .layout-sage_photo_block .main-panel {
+            width: 65%;
+            padding: 40px 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-sage_photo_block .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .layout-sage_photo_block .header p {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #5a6650;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .layout-sage_photo_block .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(42, 42, 42, 0.15);
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .layout-sage_photo_block .entry {
+            margin-bottom: 20px;
+        }
+
+        .layout-sage_photo_block .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .layout-sage_photo_block .entry-meta {
+            font-size: 12px;
+            color: #5a6650;
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-sage_photo_block .entry-desc {
+            font-size: 13px;
+            color: #4a4a4a;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           TEMPLATE 6: sage_photo_topbar (Emma Williams Style)
+           ======================================================== */
+        .layout-sage_photo_topbar {
+            display: flex;
+            min-height: 297mm;
+            background: #F5F5F0;
+            color: #2A2A2A;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-sage_photo_topbar .sidebar {
+            width: 35%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #7C8B72));
+            color: white;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .layout-sage_photo_topbar .photo-square {
+            width: 130px;
+            height: 130px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            align-self: center;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .layout-sage_photo_topbar .photo-square img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-sage_photo_topbar .sidebar h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+            color: #EDECE8;
+        }
+
+        .layout-sage_photo_topbar .sidebar ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .layout-sage_photo_topbar .main-panel {
+            width: 65%;
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .layout-sage_photo_topbar .header-title-bar {
+            border-bottom: 3px solid var(--theme-sidebar, var(--theme-sidebar, #7C8B72));
+            padding-bottom: 16px;
+            margin-bottom: 10px;
+        }
+
+        .layout-sage_photo_topbar .header-title-bar h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: #2A2A2A;
+        }
+
+        .layout-sage_photo_topbar .header-title-bar p {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #7C8B72));
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .layout-sage_photo_topbar .section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #7C8B72));
+            margin-bottom: 14px;
+        }
+
+        .layout-sage_photo_topbar .entry {
+            margin-bottom: 18px;
+        }
+
+        .layout-sage_photo_topbar .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .layout-sage_photo_topbar .entry-meta {
+            font-size: 12px;
+            color: var(--theme-sidebar, var(--theme-sidebar, #7C8B72));
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-sage_photo_topbar .entry-desc {
+            font-size: 13px;
+            color: #4a4a4a;
+            line-height: 1.45;
+        }
+
+        /* ========================================================
+           TEMPLATE 7: dark_split_soft_shapes (Morgan Maxwell Style)
+           ======================================================== */
+        .layout-dark_split_soft_shapes {
+            display: flex;
+            min-height: 297mm;
+            background: #EDECE6;
+            color: var(--theme-sidebar, var(--theme-sidebar, #12241A));
+            font-family: 'Inter', sans-serif;
+        }
+
+        .layout-dark_split_soft_shapes .sidebar {
+            width: 35%;
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            border-right: 1px solid rgba(18, 36, 26, 0.08);
+        }
+
+        .layout-dark_split_soft_shapes .sidebar h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--theme-sidebar, var(--theme-sidebar, #12241A));
+            line-height: 1.1;
+        }
+
+        .layout-dark_split_soft_shapes .sidebar p.title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-accent, var(--theme-accent, #AABE96));
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .layout-dark_split_soft_shapes .sidebar h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1.5px solid var(--theme-sidebar, var(--theme-sidebar, #12241A));
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+            margin-top: 15px;
+        }
+
+        .layout-dark_split_soft_shapes .main-panel {
+            width: 65%;
+            background: var(--theme-sidebar, var(--theme-sidebar, #12241A));
+            color: #EDECE6;
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .layout-dark_split_soft_shapes .photo-round {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: 3px solid #EDECE6;
+            overflow: hidden;
+            background: var(--theme-sidebar, var(--theme-sidebar, #12241A));
+            align-self: flex-end;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-dark_split_soft_shapes .photo-round img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .layout-dark_split_soft_shapes .main-panel h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--theme-accent, var(--theme-accent, #AABE96));
+            border-bottom: 1px solid rgba(237, 236, 230, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+        .layout-dark_split_soft_shapes .entry-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #EDECE6;
+        }
+
+        .layout-dark_split_soft_shapes .entry-meta {
+            font-size: 12px;
+            color: var(--theme-accent, var(--theme-accent, #AABE96));
+            margin: 2px 0 6px 0;
+            font-weight: 600;
+        }
+
+        .layout-dark_split_soft_shapes .entry-desc {
+            font-size: 13px;
+            color: #c4d4c8;
+            line-height: 1.45;
+        }
+
+        /* Generic print settings */
+        @media print {
+            body {
+                padding: 0;
+                background-color: white;
+            }
+            .control-bar {
+                display: none !important;
+            }
+            .cv-page-container {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+        
+        /* Editable field styling */
+        .editable-field {
+            transition: background-color 0.2s, outline 0.2s;
+            border-radius: 2px;
+        }
+        .editable-field:hover {
+            outline: 1px dashed rgba(0, 242, 254, 0.5) !important;
+            background-color: rgba(0, 242, 254, 0.05) !important;
+            cursor: text;
+        }
+        .editable-field:focus {
+            outline: 2px solid var(--accent-cyan) !important;
+            background-color: rgba(0, 242, 254, 0.1) !important;
+        }
+        /* Dark background sidebars */
+        .sidebar .editable-field:hover {
+            outline: 1px dashed rgba(255, 255, 255, 0.3) !important;
+            background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .sidebar .editable-field:focus {
+            outline: 2px solid var(--accent-cyan) !important;
+            background-color: rgba(255, 255, 255, 0.15) !important;
+        }
+    </style>
+    <style>
+        /* Dynamic Theme Overrides */
+        .layout-dark_diagonal_sidebar {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#23252a' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#D97B29' }};
+        }
+        .layout-warm_geometric_split {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#2e2a26' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#B97D4B' }};
+        }
+        .layout-arch_photo_two_tone {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#E4E3DF' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#6E6D68' }};
+        }
+        .layout-navy_gold_sidebar {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#2E3A4D' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#C9A24B' }};
+        }
+        .layout-sage_photo_block {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#9BA88F' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#9BA88F' }};
+        }
+        .layout-sage_photo_topbar {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#7C8B72' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#7C8B72' }};
+        }
+        .layout-dark_split_soft_shapes {
+            --theme-sidebar: {{ cv.custom_colors.sidebar if (cv.custom_colors and cv.custom_colors.sidebar) else '#12241A' }};
+            --theme-accent: {{ cv.custom_colors.accent if (cv.custom_colors and cv.custom_colors.accent) else '#AABE96' }};
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating review/download bar -->
+    <div class="control-bar">
+        <div style="display: flex; gap: 8px;">
+            <a href="/resume" class="control-btn" style="white-space: nowrap;">
+                ← Back to CV Creator
+            </a>
+            {% if request.args.get('from') == 'app_detail' %}
+            <a href="/applications/{{ cv.job_id }}" class="control-btn" style="white-space: nowrap;">
+                ← Back to Application Details
+            </a>
+            {% elif cv.job_id %}
+            <a href="/jobs/{{ cv.job_id }}/apply-step2" class="control-btn" style="white-space: nowrap;">
+                ← Back to Job Application
+            </a>
+            {% else %}
+            <button class="control-btn" onclick="window.history.back()" style="white-space: nowrap;">
+                ← Back to Previous Page
+            </button>
+            {% endif %}
+        </div>
+        <div style="font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <span>{{ cv.job_title }} CV</span>
+            <span style="opacity: 0.5; font-size: 12px;">({{ cv.template_id.replace('_', ' ').title() }})</span>
+        </div>
+        
+        <!-- Editor Controls -->
+        <div class="editor-controls" style="display: flex; align-items: center; gap: 15px;">
+            <div class="color-picker-group" style="display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    🎨 Accent:
+                    <input type="color" id="accentColorPicker" style="width:24px; height:24px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); cursor:pointer; background:none; padding:0;" title="Change Accent Color">
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    📁 Sidebar/Bg:
+                    <input type="color" id="sidebarColorPicker" style="width:24px; height:24px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); cursor:pointer; background:none; padding:0;" title="Change Sidebar/Bg Color">
+                </label>
+            </div>
+            <button class="control-btn" onclick="saveCustomizedCV()" style="background: rgba(0, 242, 254, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan);">
+                💾 Save Edits
+            </button>
+            <button class="control-btn btn-download" onclick="window.print()">
+                📥 Download PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- CV Paper Container -->
+    <div class="cv-page-container">
+        
+        <!-- Render Template 1: dark_diagonal_sidebar -->
+        {% if cv.template_id == 'dark_diagonal_sidebar' %}
+        <div class="layout-dark_diagonal_sidebar">
+            <div class="sidebar">
+                <div>
+                    <h3>Profile</h3>
+                    <p class="editable-field" contenteditable="true" data-key="profile_summary" style="font-size: 12.5px; line-height: 1.5; color: #cbd5e0;">{{ cv.cv_data.profile_summary }}</p>
+                </div>
+                <div>
+                    <h3>Skills</h3>
+                    {% for s in cv.cv_data.skills %}
+                    <div class="skill-item">
+                        <div class="skill-name">
+                            <span class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}].name">{{ s.name }}</span>
+                            <span><span class="editable-field" contenteditable="true" data-type="number" data-key="skills[{{ loop.index0 }}].level_percent">{{ s.level_percent }}</span>%</span>
+                        </div>
+                        <div class="skill-bar-bg">
+                            <div class="skill-bar-fill" style="width: {{ s.level_percent }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div>
+                    <h3>Contact</h3>
+                    <p style="font-size: 12.5px; line-height: 1.6; color: #cbd5e0;">
+                        📍 <span class="editable-field" contenteditable="true" data-key="contact.address">{{ cv.cv_data.contact.address }}</span><br>
+                        📞 <span class="editable-field" contenteditable="true" data-key="contact.phone">{{ cv.cv_data.contact.phone }}</span><br>
+                        ✉️ <span class="editable-field" contenteditable="true" data-key="contact.email">{{ cv.cv_data.contact.email }}</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header">
+                    <div class="name-title">
+                        <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                        <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                    </div>
+                    <div class="photo-circle">
+                        {% if profile.personal.avatar_url %}
+                        <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                        {% else %}
+                        <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:50%;">{{ cv.cv_data.name[0]|upper }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Experience</h2>
+                    {% for exp in cv.cv_data.experience %}
+                    <div class="timeline-item">
+                        <div class="timeline-header">
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ loop.index0 }}].company">{{ exp.company }}</span>
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ loop.index0 }}].years">{{ exp.years }}</span>
+                        </div>
+                        <div class="timeline-meta">{{ cv.cv_data.title }}</div>
+                        <div class="timeline-desc editable-field" contenteditable="true" data-key="experience[{{ loop.index0 }}].description">{{ exp.description }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="section">
+                    <h2>Education</h2>
+                    {% for ed in cv.cv_data.education %}
+                    <div class="timeline-item">
+                        <div class="timeline-header">
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span>
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].years">{{ ed.years }}</span>
+                        </div>
+                        <div class="timeline-meta editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree">{{ ed.degree }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 2: warm_geometric_split -->
+        {% elif cv.template_id == 'warm_geometric_split' %}
+        <div class="layout-warm_geometric_split">
+            <div class="sidebar">
+                <div class="photo-box">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:50%;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>References</h3>
+                    <ul style="display:flex; flex-direction:column; gap:12px;">
+                        {% for ref in cv.cv_data.references %}
+                        <li>
+                            <strong class="editable-field" contenteditable="true" data-key="references[{{ loop.index0 }}].name">{{ ref.name }}</strong><br>
+                            <span class="editable-field" contenteditable="true" data-key="references[{{ loop.index0 }}].company_role" style="color:#b97d4b; font-size:11px;">{{ ref.company_role }}</span><br>
+                            <span class="editable-field" contenteditable="true" data-key="references[{{ loop.index0 }}].phone">{{ ref.phone }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Languages</h3>
+                    <ul>
+                        {% for lang in cv.cv_data.languages %}
+                        <li class="skill-item">
+                            <span class="editable-field" contenteditable="true" data-key="languages[{{ loop.index0 }}].name">{{ lang.name }}</span>
+                            <span style="color:#B97D4B; font-weight:700;"><span class="editable-field" contenteditable="true" data-type="number" data-key="languages[{{ loop.index0 }}].level_percent">{{ lang.level_percent }}</span>%</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Skills</h3>
+                    <ul>
+                        {% for s in cv.cv_data.skills %}
+                        <li class="skill-item">
+                            <span class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}].name">{{ s.name }}</span>
+                            <span class="stars" style="cursor:pointer;" title="Type 1-5 to change stars">
+                                <span class="editable-field" contenteditable="true" data-type="number" data-key="skills[{{ loop.index0 }}].stars_out_of_5">{{ s.stars_out_of_5 }}</span> ★
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header-banner">
+                    <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                    <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Work Experience</h2>
+                    <div class="timeline">
+                        {% for exp in cv.cv_data.experience %}
+                        {% set exp_loop = loop.index0 %}
+                        <div class="entry">
+                            <div class="timeline-dot"></div>
+                            <div class="entry-title">
+                                <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</span> at 
+                                <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].company">{{ exp.company }}</span>
+                            </div>
+                            <div class="entry-meta editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].years">{{ exp.years }}</div>
+                            <div class="entry-desc">
+                                <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                    {% for b in exp.bullets %}
+                                    <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>Education</h2>
+                    <div class="timeline">
+                        {% for ed in cv.cv_data.education %}
+                        <div class="entry">
+                            <div class="timeline-dot"></div>
+                            <div class="entry-title editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree">{{ ed.degree }}</div>
+                            <div class="entry-meta">
+                                <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span> • 
+                                <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].years">{{ ed.years }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 3: arch_photo_two_tone -->
+        {% elif cv.template_id == 'arch_photo_two_tone' %}
+        <div class="layout-arch_photo_two_tone">
+            <div class="sidebar">
+                <div class="photo-arch">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:50px 50px 0 0;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <h3 class="sidebar-title">Contact</h3>
+                    <p style="font-size: 13px; line-height: 1.6;">
+                        ✉️ <span class="editable-field" contenteditable="true" data-key="contact.email">{{ cv.cv_data.contact.email }}</span><br>
+                        📞 <span class="editable-field" contenteditable="true" data-key="contact.phone">{{ cv.cv_data.contact.phone }}</span><br>
+                        📍 <span class="editable-field" contenteditable="true" data-key="contact.address">{{ cv.cv_data.contact.address }}</span>
+                        {% if cv.cv_data.contact.website %}
+                        <br>🌐 <span class="editable-field" contenteditable="true" data-key="contact.website">{{ cv.cv_data.contact.website }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="sidebar-title">Education</h3>
+                    {% for ed in cv.cv_data.education %}
+                    <div style="margin-bottom: 12px; font-size: 13px;">
+                        <strong class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree">{{ ed.degree }}</strong><br>
+                        <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span><br>
+                        <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].years" style="color:#6E6D68; font-size:11px; font-weight:600;">{{ ed.years }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div>
+                    <h3 class="sidebar-title">Skills</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        {% for s in cv.cv_data.skills %}
+                        <span class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}]" style="background:white; border:1px solid #6E6D68; border-radius:4px; padding:2px 8px; font-size:11px; font-weight:600;">{{ s }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header-band">
+                    <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                    <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                </div>
+                
+                <div class="main-content">
+                    <div class="section">
+                        <h2>Profile</h2>
+                        <p class="editable-field" contenteditable="true" data-key="profile_info" style="font-size: 13px; line-height: 1.5; color:#4a4a4a;">{{ cv.cv_data.profile_info }}</p>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>Experience</h2>
+                        {% for exp in cv.cv_data.experience %}
+                        {% set exp_loop = loop.index0 %}
+                        <div class="entry">
+                            <div class="entry-title">
+                                <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</span>
+                                <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].years" style="font-size: 12px; color: #6E6D68;">{{ exp.years }}</span>
+                            </div>
+                            <div class="entry-meta editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].company">{{ exp.company }}</div>
+                            <div class="entry-desc">
+                                <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                    {% for b in exp.bullets %}
+                                    <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if cv.cv_data.achievements %}
+                    <div class="section">
+                        <h2>Achievements</h2>
+                        {% for ach in cv.cv_data.achievements %}
+                        <div style="margin-bottom:10px; font-size:13px; display:flex; gap:12px;">
+                            <strong class="editable-field" contenteditable="true" data-key="achievements[{{ loop.index0 }}].years" style="color:#6E6D68; font-family:'Outfit';">{{ ach.years }}</strong>
+                            <span class="editable-field" contenteditable="true" data-key="achievements[{{ loop.index0 }}].description" style="color:#4a4a4a;">{{ ach.description }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 4: navy_gold_sidebar -->
+        {% elif cv.template_id == 'navy_gold_sidebar' %}
+        <div class="layout-navy_gold_sidebar">
+            <div class="sidebar">
+                <div class="photo-gold-ring">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:50%;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Contact</h3>
+                    <p style="font-size: 13px; line-height: 1.6; color:#e2e8f0;">
+                        📞 <span class="editable-field" contenteditable="true" data-key="contact.phone">{{ cv.cv_data.contact.phone }}</span><br>
+                        ✉️ <span class="editable-field" contenteditable="true" data-key="contact.email">{{ cv.cv_data.contact.email }}</span><br>
+                        📍 <span class="editable-field" contenteditable="true" data-key="contact.address">{{ cv.cv_data.contact.address }}</span>
+                    </p>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Education</h3>
+                    {% for ed in cv.cv_data.education %}
+                    <div style="margin-bottom:12px; font-size:13px; color:#e2e8f0;">
+                        <strong class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree" style="color:#C9A24B;">{{ ed.degree }}</strong><br>
+                        <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span><br>
+                        <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].years" style="opacity:0.8; font-size:11px;">{{ ed.years }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Skills</h3>
+                    <ul style="display:flex; flex-direction:column; gap:4px;">
+                        {% for s in cv.cv_data.skills %}
+                        <li class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}]">• {{ s }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header">
+                    <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                    <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>About Me</h2>
+                    <p class="editable-field" contenteditable="true" data-key="about_me" style="font-size: 13px; line-height: 1.5; color:#4a5568;">{{ cv.cv_data.about_me }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Experience</h2>
+                    {% for exp in cv.cv_data.experience %}
+                    {% set exp_loop = loop.index0 %}
+                    <div class="entry">
+                        <div class="entry-title">
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</span> — 
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].company">{{ exp.company }}</span>
+                        </div>
+                        <div class="entry-meta">
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].years">{{ exp.years }}</span> | 
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].location">{{ exp.location }}</span>
+                        </div>
+                        <div class="entry-desc">
+                            <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                {% for b in exp.bullets %}
+                                <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 5: sage_photo_block -->
+        {% elif cv.template_id == 'sage_photo_block' %}
+        <div class="layout-sage_photo_block">
+            <div class="sidebar">
+                <div class="photo-rect">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:0;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="sidebar-content">
+                    <div class="sidebar-section">
+                        <h3>Profile</h3>
+                        <p class="editable-field" contenteditable="true" data-key="profile" style="font-size:12px; line-height:1.5;">{{ cv.cv_data.profile }}</p>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h3>Skills</h3>
+                        <ul style="display:flex; flex-direction:column; gap:4px;">
+                            {% for s in cv.cv_data.skills %}
+                            <li class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}]">• {{ s }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h3>Awards</h3>
+                        <ul>
+                            {% for aw in cv.cv_data.awards %}
+                            <li>
+                                <strong class="editable-field" contenteditable="true" data-key="awards[{{ loop.index0 }}].title">{{ aw.title }}</strong><br>
+                                <span class="editable-field" contenteditable="true" data-key="awards[{{ loop.index0 }}].org_year">{{ aw.org_year }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="sidebar-section">
+                        <h3>Contact</h3>
+                        <p style="font-size:12px; line-height:1.5;">
+                            📞 <span class="editable-field" contenteditable="true" data-key="contact.phone">{{ cv.cv_data.contact.phone }}</span><br>
+                            ✉️ <span class="editable-field" contenteditable="true" data-key="contact.email">{{ cv.cv_data.contact.email }}</span><br>
+                            {% if cv.cv_data.contact.website %}
+                            🌐 <span class="editable-field" contenteditable="true" data-key="contact.website">{{ cv.cv_data.contact.website }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header">
+                    <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                    <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Work Experience</h2>
+                    {% for exp in cv.cv_data.experience %}
+                    {% set exp_loop = loop.index0 %}
+                    <div class="entry">
+                        <div class="entry-title editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</div>
+                        <div class="entry-meta">
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].company">{{ exp.company }}</span> • 
+                            <span class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].dates">{{ exp.dates }}</span>
+                        </div>
+                        <div class="entry-desc">
+                            <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                {% for b in exp.bullets %}
+                                <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="section">
+                    <h2>Educational History</h2>
+                    {% for ed in cv.cv_data.education %}
+                    <div class="entry">
+                        <div class="entry-title editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree">{{ ed.degree }}</div>
+                        <div class="entry-meta">
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span> • 
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].dates">{{ ed.dates }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 6: sage_photo_topbar -->
+        {% elif cv.template_id == 'sage_photo_topbar' %}
+        <div class="layout-sage_photo_topbar">
+            <div class="sidebar">
+                <div class="photo-square">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:0;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <h3>Contact</h3>
+                    <p style="font-size:12px; line-height:1.5;">
+                        ✉️ <span class="editable-field" contenteditable="true" data-key="contacts.email">{{ cv.cv_data.contacts.email }}</span><br>
+                        📞 <span class="editable-field" contenteditable="true" data-key="contacts.phone">{{ cv.cv_data.contacts.phone }}</span><br>
+                        📍 <span class="editable-field" contenteditable="true" data-key="contacts.address">{{ cv.cv_data.contacts.address }}</span>
+                        {% if cv.cv_data.contacts.website %}
+                        <br>🌐 <span class="editable-field" contenteditable="true" data-key="contacts.website">{{ cv.cv_data.contacts.website }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div>
+                    <h3>Expertise</h3>
+                    <ul style="display:flex; flex-direction:column; gap:4px;">
+                        {% for s in cv.cv_data.expertise %}
+                        <li class="editable-field" contenteditable="true" data-key="expertise[{{ loop.index0 }}]">• {{ s }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3>Education</h3>
+                    {% for ed in cv.cv_data.education %}
+                    <div style="margin-bottom:8px; font-size:12px;">
+                        <strong class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree_major">{{ ed.degree_major }}</strong><br>
+                        <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school_years">{{ ed.school_years }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="header-title-bar">
+                    <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                    <p class="editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Profile</h2>
+                    <p class="editable-field" contenteditable="true" data-key="profile" style="font-size:13px; line-height:1.5; color:#3a3a3a; margin-bottom:16px;">{{ cv.cv_data.profile }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Experience</h2>
+                    {% for exp in cv.cv_data.experience %}
+                    {% set exp_loop = loop.index0 %}
+                    <div class="entry">
+                        <div class="entry-title editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</div>
+                        <div class="entry-meta editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].company_location_years">{{ exp.company_location_years }}</div>
+                        <div class="entry-desc">
+                            <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                {% for b in exp.bullets %}
+                                <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Render Template 7: dark_split_soft_shapes -->
+        {% elif cv.template_id == 'dark_split_soft_shapes' %}
+        <div class="layout-dark_split_soft_shapes">
+            <div class="sidebar">
+                <h1 class="editable-field" contenteditable="true" data-key="name">{{ cv.cv_data.name }}</h1>
+                <p class="title editable-field" contenteditable="true" data-key="title">{{ cv.cv_data.title }}</p>
+                
+                <div>
+                    <h3>Contact</h3>
+                    <p style="font-size:12.5px; line-height:1.5;">
+                        📞 <span class="editable-field" contenteditable="true" data-key="contact.phone">{{ cv.cv_data.contact.phone }}</span><br>
+                        📍 <span class="editable-field" contenteditable="true" data-key="contact.address">{{ cv.cv_data.contact.address }}</span><br>
+                        🌐 <span class="editable-field" contenteditable="true" data-key="contact.website">{{ cv.cv_data.contact.website }}</span>
+                    </p>
+                </div>
+                
+                <div>
+                    <h3>Skills</h3>
+                    <ul style="display:flex; flex-direction:column; gap:8px;">
+                        {% for s in cv.cv_data.skills %}
+                        <li style="display:flex; justify-content:space-between; font-size:12.5px;">
+                            <span class="editable-field" contenteditable="true" data-key="skills[{{ loop.index0 }}].name">{{ s.name }}</span>
+                            <strong style="color:#AABE96;"><span class="editable-field" contenteditable="true" data-type="number" data-key="skills[{{ loop.index0 }}].percent">{{ s.percent }}</span>%</strong>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3>Languages</h3>
+                    <ul style="display:flex; flex-direction:column; gap:6px;">
+                        {% for l in cv.cv_data.languages %}
+                        <li style="display:flex; justify-content:space-between; font-size:12.5px;">
+                            <span class="editable-field" contenteditable="true" data-key="languages[{{ loop.index0 }}].name">{{ l.name }}</span>
+                            <strong style="color:#AABE96;"><span class="editable-field" contenteditable="true" data-type="number" data-key="languages[{{ loop.index0 }}].percent">{{ l.percent }}</span>%</strong>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="main-panel">
+                <div class="photo-round">
+                    {% if profile.personal.avatar_url %}
+                    <img src="{{ profile.personal.avatar_url }}" alt="Profile Photo">
+                    {% else %}
+                    <div class="profile-photo-placeholder" style="width:100%; height:100%; border-radius:50%;">{{ cv.cv_data.name[0]|upper }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="section">
+                    <h2>About Me</h2>
+                    <p class="editable-field" contenteditable="true" data-key="about_me" style="font-size:13px; line-height:1.5; color:#c4d4c8;">{{ cv.cv_data.about_me }}</p>
+                </div>
+                
+                <div class="section">
+                    <h2>Education</h2>
+                    {% for ed in cv.cv_data.education %}
+                    <div class="entry" style="margin-bottom:12px;">
+                        <div class="entry-title editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].degree">{{ ed.degree }}</div>
+                        <div class="entry-meta">
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].school">{{ ed.school }}</span> | 
+                            <span class="editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].years">{{ ed.years }}</span>
+                        </div>
+                        <div class="entry-desc editable-field" contenteditable="true" data-key="education[{{ loop.index0 }}].address" style="color:#c4d4c8; font-size:12.5px;">{{ ed.address }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="section">
+                    <h2>Experience</h2>
+                    {% for exp in cv.cv_data.experience %}
+                    {% set exp_loop = loop.index0 %}
+                    <div class="entry">
+                        <div class="entry-title editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].role">{{ exp.role }}</div>
+                        <div class="entry-meta editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].dates_company">{{ exp.dates_company }}</div>
+                        <div class="entry-desc">
+                            <ul style="padding-left:16px; display:flex; flex-direction:column; gap:4px;">
+                                {% for b in exp.bullets %}
+                                <li class="editable-field" contenteditable="true" data-key="experience[{{ exp_loop }}].bullets[{{ loop.index0 }}]">{{ b }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+
+    </div>
+
+    <!-- JavaScript Controller for real-time editing & saving -->
+    <script>
+        const cvId = "{{ cv.id }}";
+        const templateId = "{{ cv.template_id }}";
+        const cv = {{ cv | tojson }};
+        let cvData = cv.cv_data;
+
+        const defaultColors = {
+            "dark_diagonal_sidebar": { sidebar: "#23252a", accent: "#D97B29" },
+            "warm_geometric_split": { sidebar: "#2e2a26", accent: "#B97D4B" },
+            "arch_photo_two_tone": { sidebar: "#E4E3DF", accent: "#6E6D68" },
+            "navy_gold_sidebar": { sidebar: "#2E3A4D", accent: "#C9A24B" },
+            "sage_photo_block": { sidebar: "#9BA88F", accent: "#9BA88F" },
+            "sage_photo_topbar": { sidebar: "#7C8B72", accent: "#7C8B72" },
+            "dark_split_soft_shapes": { sidebar: "#12241A", accent: "#AABE96" }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const accentPicker = document.getElementById("accentColorPicker");
+            const sidebarPicker = document.getElementById("sidebarColorPicker");
+
+            const savedAccent = cv.custom_colors && cv.custom_colors.accent ? cv.custom_colors.accent : defaultColors[templateId].accent;
+            const savedSidebar = cv.custom_colors && cv.custom_colors.sidebar ? cv.custom_colors.sidebar : defaultColors[templateId].sidebar;
+
+            accentPicker.value = savedAccent;
+            sidebarPicker.value = savedSidebar;
+
+            const container = document.querySelector(`.layout-${templateId}`);
+            if (container) {
+                container.style.setProperty('--theme-accent', savedAccent);
+                container.style.setProperty('--theme-sidebar', savedSidebar);
+            }
+
+            accentPicker.addEventListener("input", (e) => {
+                if (container) {
+                    container.style.setProperty('--theme-accent', e.target.value);
+                }
+            });
+
+            sidebarPicker.addEventListener("input", (e) => {
+                if (container) {
+                    container.style.setProperty('--theme-sidebar', e.target.value);
+                }
+            });
+        });
+
+        function setNestedProperty(obj, path, value) {
+            const parts = path.replace(/\]/g, '').split(/\.|\[/);
+            let current = obj;
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                if (!current[part]) {
+                    current[part] = isNaN(parts[i+1]) ? {} : [];
+                }
+                current = current[part];
+            }
+            const lastPart = parts[parts.length - 1];
+            if (!isNaN(lastPart)) {
+                current[parseInt(lastPart)] = value;
+            } else {
+                current[lastPart] = value;
+            }
+        }
+
+        async function saveCustomizedCV() {
+            const saveBtn = document.querySelector("button[onclick='saveCustomizedCV()']");
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "⏳ Saving...";
+            saveBtn.disabled = true;
+
+            try {
+                const editableElements = document.querySelectorAll("[data-key]");
+                editableElements.forEach(el => {
+                    const keyPath = el.getAttribute("data-key");
+                    let val = el.innerText.trim();
+                    
+                    if (el.getAttribute("data-type") === "number") {
+                        val = parseInt(val.replace('%', '')) || 0;
+                    }
+                    
+                    setNestedProperty(cvData, keyPath, val);
+                });
+
+                const accent = document.getElementById("accentColorPicker").value;
+                const sidebar = document.getElementById("sidebarColorPicker").value;
+
+                const response = await fetch(`/resume/save-customized/${cvId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        cv_data: cvData,
+                        custom_colors: {
+                            accent: accent,
+                            sidebar: sidebar
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    saveBtn.innerText = "✅ Saved!";
+                    setTimeout(() => {
+                        saveBtn.innerText = originalText;
+                        saveBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    alert("Failed to save: " + result.error);
+                    saveBtn.innerText = originalText;
+                    saveBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Save error:", err);
+                alert("An error occurred: " + err.message);
+                saveBtn.innerText = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+</html>
