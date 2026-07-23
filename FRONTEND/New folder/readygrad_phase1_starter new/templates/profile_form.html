@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadyGrad — Graduate Skill-to-Career Alignment</title>
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styles */
+        :root {
+            --bg-color: #030408;
+            --surface-color: rgba(255, 255, 255, 0.02);
+            --surface-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: #9ea4b3;
+            --accent-cyan: #00f2fe;
+            --accent-purple: #7f00ff;
+            --accent-pink: #ff007f;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Subtle glowing background lights and grid */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glowing-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(127, 0, 255, 0.12) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .glow-orb-2 {
+            position: absolute;
+            top: 40%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        /* Navigation Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            backdrop-filter: blur(12px);
+            background: rgba(3, 4, 8, 0.7);
+            border-bottom: 1px solid var(--surface-border);
+            z-index: 100;
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            fill: none;
+            stroke: var(--accent-cyan);
+            stroke-width: 2;
+        }
+
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .logo-subtitle {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-link.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .user-logout-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .user-logout-btn:hover {
+            background: rgba(255, 95, 86, 0.1);
+            border-color: rgba(255, 95, 86, 0.3);
+            color: #ff5f56;
+        }
+
+        /* Container grid */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding-top: 160px;
+            padding-bottom: 100px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 60px;
+            align-items: center;
+            min-height: calc(100vh - 80px);
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* Badge */
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(127, 0, 255, 0.05);
+            border: 1px solid rgba(127, 0, 255, 0.25);
+            border-radius: 50px;
+            padding: 8px 16px;
+            color: #b37cff;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 28px;
+            box-shadow: 0 0 15px rgba(127, 0, 255, 0.1);
+            animation: pulse-glow 3s infinite alternate;
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: 54px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1.5px;
+            margin-bottom: 24px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, #a252ff 50%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+
+        .hero-description {
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 38px;
+            max-width: 560px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            border: none;
+            color: var(--text-primary);
+            padding: 15px 32px;
+            border-radius: 12px;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 242, 254, 0.4);
+        }
+
+        .btn-primary svg {
+            transition: transform 0.3s ease;
+        }
+
+        .btn-primary:hover svg {
+            transform: translateX(4px);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            background: transparent;
+            border: 1px solid var(--surface-border);
+            color: var(--text-primary);
+            padding: 15px 32px;
+            border-radius: 12px;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Hero Image Panel */
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .mockup-container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 12px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .mockup-img {
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            display: block;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+        }
+
+        .mockup-container:hover .mockup-img {
+            opacity: 1;
+        }
+
+        /* Glowing ring behind mockup */
+        .visual-glow {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.15) 0%, rgba(127, 0, 255, 0.1) 50%, transparent 100%);
+            filter: blur(40px);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Form Section */
+        .form-section {
+            padding: 160px 0 140px 0;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 38px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphic Form Card */
+        .form-card {
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 50px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 
+                0 30px 70px rgba(0, 0, 0, 0.5),
+                inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 24px;
+        }
+
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+
+        .form-label {
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 10px;
+        }
+
+        .form-label small {
+            text-transform: none;
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 400;
+            letter-spacing: 0;
+            margin-left: 5px;
+        }
+
+        .form-input {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 15px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 18px rgba(0, 242, 254, 0.15);
+        }
+
+        textarea.form-input {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .submit-btn-container {
+            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .btn-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+            color: var(--text-primary);
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-family: var(--font-display);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(127, 0, 255, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(127, 0, 255, 0.45);
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-12px) rotate(1deg);
+            }
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 10px rgba(127, 0, 255, 0.1);
+                border-color: rgba(127, 0, 255, 0.25);
+            }
+            100% {
+                box-shadow: 0 0 25px rgba(127, 0, 255, 0.25);
+                border-color: rgba(127, 0, 255, 0.5);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 992px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 50px;
+                padding-top: 130px;
+                text-align: center;
+            }
+
+            .hero-content {
+                align-items: center;
+            }
+
+            .hero-title {
+                font-size: 42px;
+            }
+
+            .hero-badge {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .hero-actions {
+                justify-content: center;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .form-group.full-width, .form-group {
+                grid-column: span 1;
+            }
+            
+            .form-card {
+                padding: 30px;
+            }
+        }
+
+        /* Onboarding Wizard Layout */
+        .wizard-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .wizard-sidebar {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--surface-border);
+            border-radius: 20px;
+            padding: 24px;
+            height: fit-content;
+            backdrop-filter: blur(10px);
+        }
+
+        .wizard-sidebar-title {
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-cyan);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .sidebar-step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid transparent;
+        }
+
+        .sidebar-step-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .sidebar-step-item.active {
+            background: rgba(0, 242, 254, 0.05);
+            border-color: rgba(0, 242, 254, 0.2);
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .step-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .sidebar-step-item.active .step-badge {
+            background: var(--accent-cyan);
+            color: var(--bg-color);
+            border-color: var(--accent-cyan);
+        }
+
+        .sidebar-step-item.completed .step-badge {
+            background: rgba(39, 201, 63, 0.1);
+            color: #27c93f;
+            border-color: rgba(39, 201, 63, 0.3);
+        }
+
+        /* Step cards container */
+        .step-panes {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-pane {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .step-pane.active {
+            display: block;
+        }
+
+        /* Prompt/Tip Box */
+        .ai-tip-box {
+            background: rgba(127, 0, 255, 0.02);
+            border: 1px solid rgba(127, 0, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .ai-tip-icon {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .ai-tip-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .ai-tip-content strong {
+            color: var(--text-primary);
+        }
+
+        /* Wizard Footer controls */
+        .wizard-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 24px;
+        }
+
+        .btn-wizard-back {
+            background: transparent;
+            border: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-wizard-back:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .wizard-right-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-wizard-skip {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--surface-border);
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+        }
+
+        .btn-wizard-skip:hover {
+            background: rgba(255, 95, 86, 0.05);
+            border-color: rgba(255, 95, 86, 0.2);
+            color: #ff5f56;
+        }
+
+        .btn-wizard-next {
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            border: none;
+            color: var(--text-primary);
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-family: var(--font-display);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.15);
+        }
+
+        .btn-wizard-next:hover {
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.3);
+            transform: translateY(-1px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .wizard-layout {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Glowing Background Orbs -->
+    <div class="glowing-bg">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+    </div>
+
+    <!-- Unified Header -->
+    <header>
+        <a href="/" class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24">
+                <path d="M2 8l10-5 10 5-10 5L2 8z" stroke="currentColor"/>
+                <path d="M6 10v5c0 2 2 4 6 4s6-2 6-4v-5" stroke="currentColor"/>
+            </svg>
+            <div class="logo-text-group">
+                <span class="logo-title">ReadyGrad</span>
+                <span class="logo-subtitle">AI Career Platform</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/build-profile" class="nav-link active">Profile Section</a>
+            <a href="/jobs" class="nav-link">Job Section</a>
+            <a href="/resume" class="nav-link">CV Creator</a>
+            <a href="/portfolio" class="nav-link">Portfolio Website</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-avatar" title="{{ user.name }}">{{ user.name[0]|upper if user.name else 'U' }}</div>
+            <a href="/logout" class="user-logout-btn">Log Out</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Form / Profile Builder Section -->
+        <section class="form-section" id="profile-builder-section">
+            <div class="section-header">
+                <h2 class="section-title">Build Your Career Profile</h2>
+                <p class="section-subtitle">Introduce yourself step-by-step. Fill in the sections or click Skip to proceed. Our AI engine will structure and optimize it for you.</p>
+            </div>
+
+            <div class="form-card" style="max-width: 1000px;">
+                <form action="/submit-profile" method="POST" id="wizard-form" enctype="multipart/form-data">
+                    <div class="wizard-layout">
+                        <!-- Sidebar step selector -->
+                        <aside class="wizard-sidebar">
+                            <div class="wizard-sidebar-title">Step Progress</div>
+                            <ul class="sidebar-steps">
+                                <li class="sidebar-step-item active" data-step="1">
+                                    <div class="step-badge">1</div>
+                                    <span>Personal Info</span>
+                                </li>
+                                <li class="sidebar-step-item" data-step="2">
+                                    <div class="step-badge">2</div>
+                                    <span>Education</span>
+                                </li>
+                                <li class="sidebar-step-item" data-step="3">
+                                    <div class="step-badge">3</div>
+                                    <span>Work Experience</span>
+                                </li>
+                                <li class="sidebar-step-item" data-step="4">
+                                    <div class="step-badge">4</div>
+                                    <span>Core Skills</span>
+                                </li>
+                                <li class="sidebar-step-item" data-step="5">
+                                    <div class="step-badge">5</div>
+                                    <span>Key Projects</span>
+                                </li>
+                                <li class="sidebar-step-item" data-step="6">
+                                    <div class="step-badge">6</div>
+                                    <span>Certifications</span>
+                                </li>
+                            </ul>
+                        </aside>
+
+                        <!-- Step Content Panes -->
+                        <div class="step-panes">
+                            <!-- Step 1: Personal Info -->
+                            <div class="step-pane active" id="step-pane-1">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">📍</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> Providing your name, location, and verified email helps ReadyGrad match your profile against regional junior listings. Upload a profile photo to personalize your job applications.
+                                    </div>
+                                </div>
+                                <div class="form-grid" style="grid-template-columns: 1fr;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="name">Full Name</label>
+                                        <input type="text" id="name" name="name" class="form-input" placeholder="e.g. John Doe" value="{{ profile.personal.name if profile and profile.personal.name else user.name }}" required>
+                                    </div>
+                                    <div class="form-group" style="display: none;">
+                                        <label class="form-label" for="email">Email Address</label>
+                                        <input type="email" id="email" name="email" class="form-input" placeholder="e.g. john@example.com" value="{{ user.email }}" readonly required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="location">Location / City</label>
+                                        <input type="text" id="location" name="location" class="form-input" placeholder="e.g. Dhaka, Bangladesh" value="{{ profile.personal.location if profile and profile.personal.location else '' }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="avatar">Profile Picture / Photo <small>(Used for job applications)</small></label>
+                                        <input type="file" id="avatar" name="avatar" class="form-input" accept="image/*" style="padding: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Education -->
+                            <div class="step-pane" id="step-pane-2">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">🎓</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> Write naturally about your university, degree, and graduation year (e.g. <em>BSc in Computer Science, XYZ University, 2026</em>). Write one entry per line.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="education">Education History</label>
+                                    <textarea id="education" name="education" class="form-input" placeholder="e.g. XYZ University, BSc in Computer Science, 2026">{% if profile and profile.education %}{% for e in profile.education %}{{ e.school }}, {{ e.degree }}, {{ e.year }}{{ '\n' if not loop.last else '' }}{% endfor %}{% endif %}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Work Experience -->
+                            <div class="step-pane" id="step-pane-3">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">💼</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> Don't worry about formatting. Write down details of your internships, freelance, or student jobs. Gemma will re-write them as professional bullet points.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="experience">Work Experience / Internships</label>
+                                    <textarea id="experience" name="experience" class="form-input" placeholder="e.g. Intern at ABC Corp, Summer 2025, developed backend REST APIs using Python and Flask">{% if profile and profile.experience %}{% for ex in profile.experience %}{{ ex.role }}, {{ ex.company }}, {{ ex.duration }}, {{ ex.description }}{{ '\n' if not loop.last else '' }}{% endfor %}{% endif %}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Core Skills -->
+                            <div class="step-pane" id="step-pane-4">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">⚡</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> Add your core skills, programming languages, or soft skills separated by commas (e.g. <em>Python, Flask, SQL, React, CSS, Git, Agile</em>).
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="skills">Skills & Technologies</label>
+                                    <textarea id="skills" name="skills" class="form-input" placeholder="e.g. Python, Flask, SQL, HTML, CSS, JavaScript, Git">{% if profile and profile.skills %}{{ profile.skills | join(', ') }}{% endif %}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Step 5: Key Projects -->
+                            <div class="step-pane" id="step-pane-5">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">🚀</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> Highlight projects you are proud of. Share the tech stack, purpose, and what you built. One project per line or describe them in sentences.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="projects">Personal / Academic Projects</label>
+                                    <textarea id="projects" name="projects" class="form-input" placeholder="e.g. Built a student matching web application that matches profiles with junior job listings">{% if profile and profile.projects %}{% for p in profile.projects %}{{ p.title }}: {{ p.description }}{{ '\n' if not loop.last else '' }}{% endfor %}{% endif %}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Step 6: Certifications -->
+                            <div class="step-pane" id="step-pane-6">
+                                <div class="ai-tip-box">
+                                    <div class="ai-tip-icon">🏅</div>
+                                    <div class="ai-tip-content">
+                                        <strong>AI Assistant:</strong> List any online courses or certifications you completed (e.g. <em>Google Analytics, AWS Practitioner</em>). One certificate per line.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="certificates">Professional Certificates</label>
+                                    <textarea id="certificates" name="certificates" class="form-input" placeholder="e.g. Google Data Analytics Professional Certificate, 2025">{% if profile and profile.certificates %}{{ profile.certificates | join('\n') }}{% endif %}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Controls -->
+                            <div class="wizard-controls">
+                                <button type="button" class="btn-wizard-back" id="btn-back">← Previous</button>
+                                <div class="wizard-right-actions">
+                                    <button type="button" class="btn-wizard-skip" id="btn-skip">Skip Step</button>
+                                    <button type="button" class="btn-wizard-next" id="btn-next">Continue →</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            let currentStep = 1;
+            
+            const stepPanes = document.querySelectorAll(".step-pane");
+            const sidebarItems = document.querySelectorAll(".sidebar-step-item");
+            const backBtn = document.getElementById("btn-back");
+            const skipBtn = document.getElementById("btn-skip");
+            const nextBtn = document.getElementById("btn-next");
+            
+            // Check for prefilled values to mark steps as completed
+            const checkCompletionStatus = () => {
+                // Step 1: Location & Name
+                const nameVal = document.getElementById("name").value.trim();
+                const locVal = document.getElementById("location").value.trim();
+                markStep(1, nameVal.length > 0 && locVal.length > 0);
+                
+                // Step 2: Education
+                markStep(2, document.getElementById("education").value.trim().length > 0);
+                
+                // Step 3: Experience
+                markStep(3, document.getElementById("experience").value.trim().length > 0);
+                
+                // Step 4: Skills
+                markStep(4, document.getElementById("skills").value.trim().length > 0);
+                
+                // Step 5: Projects
+                markStep(5, document.getElementById("projects").value.trim().length > 0);
+                
+                // Step 6: Certificates
+                markStep(6, document.getElementById("certificates").value.trim().length > 0);
+            };
+            
+            const markStep = (stepNum, isCompleted) => {
+                const item = document.querySelector(`.sidebar-step-item[data-step="${stepNum}"]`);
+                if (item) {
+                    if (isCompleted) {
+                        item.classList.add("completed");
+                    } else {
+                        item.classList.remove("completed");
+                    }
+                }
+            };
+            
+            const updateUI = () => {
+                // Show/hide step panes
+                stepPanes.forEach((pane, idx) => {
+                    if (idx + 1 === currentStep) {
+                        pane.classList.add("active");
+                    } else {
+                        pane.classList.remove("active");
+                    }
+                });
+                
+                // Update sidebar active classes
+                sidebarItems.forEach((item) => {
+                    const stepNum = parseInt(item.getAttribute("data-step"));
+                    if (stepNum === currentStep) {
+                        item.classList.add("active");
+                    } else {
+                        item.classList.remove("active");
+                    }
+                });
+                
+                // Update back button visibility
+                if (currentStep === 1) {
+                    backBtn.style.visibility = "hidden";
+                } else {
+                    backBtn.style.visibility = "visible";
+                }
+                
+                // Last step logic
+                if (currentStep === 6) {
+                    nextBtn.innerHTML = 'Generate My Profile with Gemma 4';
+                    nextBtn.type = "submit";
+                    skipBtn.style.display = "none";
+                } else {
+                    nextBtn.innerHTML = 'Continue →';
+                    nextBtn.type = "button";
+                    skipBtn.style.display = "inline-flex";
+                }
+            };
+            
+            const goToStep = (stepNum) => {
+                if (stepNum < 1 || stepNum > 6) return;
+                currentStep = stepNum;
+                updateUI();
+            };
+            
+            // Next button click handler
+            nextBtn.addEventListener("click", (e) => {
+                if (currentStep === 6) {
+                    // Submit form
+                    document.getElementById("wizard-form").submit();
+                    return;
+                }
+                
+                e.preventDefault();
+                
+                // Form validation for step 1
+                if (currentStep === 1) {
+                    const nameInput = document.getElementById("name");
+                    if (!nameInput.checkValidity()) {
+                        nameInput.reportValidity();
+                        return;
+                    }
+                }
+                
+                checkCompletionStatus();
+                goToStep(currentStep + 1);
+            });
+            
+            // Back button click handler
+            backBtn.addEventListener("click", () => {
+                goToStep(currentStep - 1);
+            });
+            
+            // Skip button click handler
+            skipBtn.addEventListener("click", () => {
+                const currentPane = stepPanes[currentStep - 1];
+                const fields = currentPane.querySelectorAll("textarea, input[type='text']:not(#name)");
+                fields.forEach(f => f.value = ""); // clear value
+                
+                markStep(currentStep, false);
+                goToStep(currentStep + 1);
+            });
+            
+            // Sidebar steps click handler for direct navigation
+            sidebarItems.forEach((item) => {
+                item.addEventListener("click", () => {
+                    const stepNum = parseInt(item.getAttribute("data-step"));
+                    goToStep(stepNum);
+                });
+            });
+            
+            // Input event listeners to update checkmarks
+            document.querySelectorAll("textarea, input").forEach(input => {
+                input.addEventListener("input", () => {
+                    checkCompletionStatus();
+                });
+            });
+            
+            // Initial checks
+            checkCompletionStatus();
+            updateUI();
+        });
+    </script>
+</body>
+</html>
