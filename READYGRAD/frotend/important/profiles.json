@@ -1,0 +1,174 @@
+[
+  {
+    "personal": {
+      "name": "Nowrin Tanhiad",
+      "email": "nowrin.tanhiad@g.bracu.ac.bd",
+      "location": "Dhaka"
+    },
+    "education": [
+      {
+        "school": "brac university",
+        "degree": "",
+        "year": ""
+      }
+    ],
+    "experience": [],
+    "skills": [
+      "python"
+    ],
+    "projects": [],
+    "certificates": [],
+    "completeness": 50,
+    "job_compatibilities": [
+      {
+        "job_id": 1,
+        "title": "Junior Backend Developer",
+        "company": "Nexora Tech",
+        "score": 33,
+        "matched_skills": [
+          "Python"
+        ],
+        "missing_skills": [
+          "Flask",
+          "SQL"
+        ]
+      },
+      {
+        "job_id": 2,
+        "title": "Data Analyst",
+        "company": "Brightline Analytics",
+        "score": 33,
+        "matched_skills": [
+          "Python"
+        ],
+        "missing_skills": [
+          "SQL",
+          "Excel"
+        ]
+      },
+      {
+        "job_id": 6,
+        "title": "QA Engineer",
+        "company": "Nexora Tech",
+        "score": 33,
+        "matched_skills": [
+          "Python"
+        ],
+        "missing_skills": [
+          "Testing",
+          "SQL"
+        ]
+      },
+      {
+        "job_id": 9,
+        "title": "Junior Python Developer",
+        "company": "Brightline Analytics",
+        "score": 33,
+        "matched_skills": [
+          "Python"
+        ],
+        "missing_skills": [
+          "Flask",
+          "APIs"
+        ]
+      },
+      {
+        "job_id": 11,
+        "title": "Mid-level Backend Engineer",
+        "company": "Cedarpoint Capital",
+        "score": 33,
+        "matched_skills": [
+          "Python"
+        ],
+        "missing_skills": [
+          "SQL",
+          "System Design"
+        ]
+      },
+      {
+        "job_id": 3,
+        "title": "Frontend Developer",
+        "company": "Pixel Foundry",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "JavaScript",
+          "React",
+          "CSS"
+        ]
+      },
+      {
+        "job_id": 4,
+        "title": "Marketing Coordinator",
+        "company": "LoudSpeak Media",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Content Writing",
+          "SEO",
+          "Social Media"
+        ]
+      },
+      {
+        "job_id": 5,
+        "title": "Financial Analyst",
+        "company": "Cedarpoint Capital",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Excel",
+          "Financial Modeling",
+          "SQL"
+        ]
+      },
+      {
+        "job_id": 7,
+        "title": "UX Designer",
+        "company": "Pixel Foundry",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Figma",
+          "UX Research",
+          "Prototyping"
+        ]
+      },
+      {
+        "job_id": 8,
+        "title": "Healthcare Data Assistant",
+        "company": "MediTrack",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Excel",
+          "Data Entry",
+          "SQL"
+        ]
+      },
+      {
+        "job_id": 10,
+        "title": "Sales Development Rep",
+        "company": "LoudSpeak Media",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Communication",
+          "CRM Tools",
+          "Cold Outreach"
+        ]
+      },
+      {
+        "job_id": 12,
+        "title": "Graphic Designer",
+        "company": "LoudSpeak Media",
+        "score": 0,
+        "matched_skills": [],
+        "missing_skills": [
+          "Adobe Photoshop",
+          "Illustrator",
+          "Branding"
+        ]
+      }
+    ]
+  }
+]
