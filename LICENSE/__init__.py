@@ -1,236 +1,117 @@
-from __future__ import annotations
+"""
+pip._vendor is for vendoring dependencies of pip to prevent needing pip to
+depend on something external.
 
-# Importing the typing module would conflict with websockets.typing.
-from typing import TYPE_CHECKING
+Files inside of pip._vendor should be considered immutable and should only be
+updated to versions from upstream.
+"""
+from __future__ import absolute_import
 
-from .imports import lazy_import
-from .version import version as __version__  # noqa: F401
+import glob
+import os.path
+import sys
+
+# Downstream redistributors which have debundled our dependencies should also
+# patch this value to be true. This will trigger the additional patching
+# to cause things like "six" to be available as pip.
+DEBUNDLED = False
+
+# By default, look in this directory for a bunch of .whl files which we will
+# add to the beginning of sys.path before attempting to import anything. This
+# is done to support downstream re-distributors like Debian and Fedora who
+# wish to create their own Wheels for our dependencies to aid in debundling.
+WHEEL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
-__all__ = [
-    # .asyncio.client
-    "connect",
-    "unix_connect",
-    "ClientConnection",
-    # .asyncio.router
-    "route",
-    "unix_route",
-    "Router",
-    # .asyncio.server
-    "basic_auth",
-    "broadcast",
-    "serve",
-    "unix_serve",
-    "ServerConnection",
-    "Server",
-    # .client
-    "ClientProtocol",
-    # .datastructures
-    "Headers",
-    "HeadersLike",
-    "MultipleValuesError",
-    # .exceptions
-    "ConcurrencyError",
-    "ConnectionClosed",
-    "ConnectionClosedError",
-    "ConnectionClosedOK",
-    "DuplicateParameter",
-    "InvalidHandshake",
-    "InvalidHeader",
-    "InvalidHeaderFormat",
-    "InvalidHeaderValue",
-    "InvalidMessage",
-    "InvalidOrigin",
-    "InvalidParameterName",
-    "InvalidParameterValue",
-    "InvalidProxy",
-    "InvalidProxyMessage",
-    "InvalidProxyStatus",
-    "InvalidState",
-    "InvalidStatus",
-    "InvalidUpgrade",
-    "InvalidURI",
-    "NegotiationError",
-    "PayloadTooBig",
-    "ProtocolError",
-    "ProxyError",
-    "SecurityError",
-    "WebSocketException",
-    # .frames
-    "Close",
-    "CloseCode",
-    "Frame",
-    "Opcode",
-    # .http11
-    "Request",
-    "Response",
-    # .protocol
-    "Protocol",
-    "Side",
-    "State",
-    # .server
-    "ServerProtocol",
-    # .typing
-    "Data",
-    "ExtensionName",
-    "ExtensionParameter",
-    "LoggerLike",
-    "StatusLike",
-    "Origin",
-    "Subprotocol",
-]
+# Define a small helper function to alias our vendored modules to the real ones
+# if the vendored ones do not exist. This idea of this was taken from
+# https://github.com/kennethreitz/requests/pull/2567.
+def vendored(modulename):
+    vendored_name = "{0}.{1}".format(__name__, modulename)
 
-# When type checking, import non-deprecated aliases eagerly. Else, import on demand.
-if TYPE_CHECKING:
-    from .asyncio.client import ClientConnection, connect, unix_connect
-    from .asyncio.router import Router, route, unix_route
-    from .asyncio.server import (
-        Server,
-        ServerConnection,
-        basic_auth,
-        broadcast,
-        serve,
-        unix_serve,
-    )
-    from .client import ClientProtocol
-    from .datastructures import Headers, HeadersLike, MultipleValuesError
-    from .exceptions import (
-        ConcurrencyError,
-        ConnectionClosed,
-        ConnectionClosedError,
-        ConnectionClosedOK,
-        DuplicateParameter,
-        InvalidHandshake,
-        InvalidHeader,
-        InvalidHeaderFormat,
-        InvalidHeaderValue,
-        InvalidMessage,
-        InvalidOrigin,
-        InvalidParameterName,
-        InvalidParameterValue,
-        InvalidProxy,
-        InvalidProxyMessage,
-        InvalidProxyStatus,
-        InvalidState,
-        InvalidStatus,
-        InvalidUpgrade,
-        InvalidURI,
-        NegotiationError,
-        PayloadTooBig,
-        ProtocolError,
-        ProxyError,
-        SecurityError,
-        WebSocketException,
-    )
-    from .frames import Close, CloseCode, Frame, Opcode
-    from .http11 import Request, Response
-    from .protocol import Protocol, Side, State
-    from .server import ServerProtocol
-    from .typing import (
-        Data,
-        ExtensionName,
-        ExtensionParameter,
-        LoggerLike,
-        Origin,
-        StatusLike,
-        Subprotocol,
-    )
-else:
-    lazy_import(
-        globals(),
-        aliases={
-            # .asyncio.client
-            "connect": ".asyncio.client",
-            "unix_connect": ".asyncio.client",
-            "ClientConnection": ".asyncio.client",
-            # .asyncio.router
-            "route": ".asyncio.router",
-            "unix_route": ".asyncio.router",
-            "Router": ".asyncio.router",
-            # .asyncio.server
-            "basic_auth": ".asyncio.server",
-            "broadcast": ".asyncio.server",
-            "serve": ".asyncio.server",
-            "unix_serve": ".asyncio.server",
-            "ServerConnection": ".asyncio.server",
-            "Server": ".asyncio.server",
-            # .client
-            "ClientProtocol": ".client",
-            # .datastructures
-            "Headers": ".datastructures",
-            "HeadersLike": ".datastructures",
-            "MultipleValuesError": ".datastructures",
-            # .exceptions
-            "ConcurrencyError": ".exceptions",
-            "ConnectionClosed": ".exceptions",
-            "ConnectionClosedError": ".exceptions",
-            "ConnectionClosedOK": ".exceptions",
-            "DuplicateParameter": ".exceptions",
-            "InvalidHandshake": ".exceptions",
-            "InvalidHeader": ".exceptions",
-            "InvalidHeaderFormat": ".exceptions",
-            "InvalidHeaderValue": ".exceptions",
-            "InvalidMessage": ".exceptions",
-            "InvalidOrigin": ".exceptions",
-            "InvalidParameterName": ".exceptions",
-            "InvalidParameterValue": ".exceptions",
-            "InvalidProxy": ".exceptions",
-            "InvalidProxyMessage": ".exceptions",
-            "InvalidProxyStatus": ".exceptions",
-            "InvalidState": ".exceptions",
-            "InvalidStatus": ".exceptions",
-            "InvalidUpgrade": ".exceptions",
-            "InvalidURI": ".exceptions",
-            "NegotiationError": ".exceptions",
-            "PayloadTooBig": ".exceptions",
-            "ProtocolError": ".exceptions",
-            "ProxyError": ".exceptions",
-            "SecurityError": ".exceptions",
-            "WebSocketException": ".exceptions",
-            # .frames
-            "Close": ".frames",
-            "CloseCode": ".frames",
-            "Frame": ".frames",
-            "Opcode": ".frames",
-            # .http11
-            "Request": ".http11",
-            "Response": ".http11",
-            # .protocol
-            "Protocol": ".protocol",
-            "Side": ".protocol",
-            "State": ".protocol",
-            # .server
-            "ServerProtocol": ".server",
-            # .typing
-            "Data": ".typing",
-            "ExtensionName": ".typing",
-            "ExtensionParameter": ".typing",
-            "LoggerLike": ".typing",
-            "Origin": ".typing",
-            "StatusLike": ".typing",
-            "Subprotocol": ".typing",
-        },
-        deprecated_aliases={
-            # deprecated in 9.0 - 2021-09-01
-            "framing": ".legacy",
-            "handshake": ".legacy",
-            "parse_uri": ".uri",
-            "WebSocketURI": ".uri",
-            # deprecated in 14.0 - 2024-11-09
-            # .legacy.auth
-            "BasicAuthWebSocketServerProtocol": ".legacy.auth",
-            "basic_auth_protocol_factory": ".legacy.auth",
-            # .legacy.client
-            "WebSocketClientProtocol": ".legacy.client",
-            # .legacy.exceptions
-            "AbortHandshake": ".legacy.exceptions",
-            "InvalidStatusCode": ".legacy.exceptions",
-            "RedirectHandshake": ".legacy.exceptions",
-            "WebSocketProtocolError": ".legacy.exceptions",
-            # .legacy.protocol
-            "WebSocketCommonProtocol": ".legacy.protocol",
-            # .legacy.server
-            "WebSocketServer": ".legacy.server",
-            "WebSocketServerProtocol": ".legacy.server",
-        },
-    )
+    try:
+        __import__(modulename, globals(), locals(), level=0)
+    except ImportError:
+        # We can just silently allow import failures to pass here. If we
+        # got to this point it means that ``import pip._vendor.whatever``
+        # failed and so did ``import whatever``. Since we're importing this
+        # upfront in an attempt to alias imports, not erroring here will
+        # just mean we get a regular import error whenever pip *actually*
+        # tries to import one of these modules to use it, which actually
+        # gives us a better error message than we would have otherwise
+        # gotten.
+        pass
+    else:
+        sys.modules[vendored_name] = sys.modules[modulename]
+        base, head = vendored_name.rsplit(".", 1)
+        setattr(sys.modules[base], head, sys.modules[modulename])
+
+
+# If we're operating in a debundled setup, then we want to go ahead and trigger
+# the aliasing of our vendored libraries as well as looking for wheels to add
+# to our sys.path. This will cause all of this code to be a no-op typically
+# however downstream redistributors can enable it in a consistent way across
+# all platforms.
+if DEBUNDLED:
+    # Actually look inside of WHEEL_DIR to find .whl files and add them to the
+    # front of our sys.path.
+    sys.path[:] = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
+
+    # Actually alias all of our vendored dependencies.
+    vendored("cachecontrol")
+    vendored("certifi")
+    vendored("dependency-groups")
+    vendored("distlib")
+    vendored("distro")
+    vendored("packaging")
+    vendored("packaging.version")
+    vendored("packaging.specifiers")
+    vendored("pkg_resources")
+    vendored("platformdirs")
+    vendored("progress")
+    vendored("pyproject_hooks")
+    vendored("requests")
+    vendored("requests.exceptions")
+    vendored("requests.packages")
+    vendored("requests.packages.urllib3")
+    vendored("requests.packages.urllib3._collections")
+    vendored("requests.packages.urllib3.connection")
+    vendored("requests.packages.urllib3.connectionpool")
+    vendored("requests.packages.urllib3.contrib")
+    vendored("requests.packages.urllib3.contrib.ntlmpool")
+    vendored("requests.packages.urllib3.contrib.pyopenssl")
+    vendored("requests.packages.urllib3.exceptions")
+    vendored("requests.packages.urllib3.fields")
+    vendored("requests.packages.urllib3.filepost")
+    vendored("requests.packages.urllib3.packages")
+    vendored("requests.packages.urllib3.packages.ordered_dict")
+    vendored("requests.packages.urllib3.packages.six")
+    vendored("requests.packages.urllib3.packages.ssl_match_hostname")
+    vendored("requests.packages.urllib3.packages.ssl_match_hostname."
+             "_implementation")
+    vendored("requests.packages.urllib3.poolmanager")
+    vendored("requests.packages.urllib3.request")
+    vendored("requests.packages.urllib3.response")
+    vendored("requests.packages.urllib3.util")
+    vendored("requests.packages.urllib3.util.connection")
+    vendored("requests.packages.urllib3.util.request")
+    vendored("requests.packages.urllib3.util.response")
+    vendored("requests.packages.urllib3.util.retry")
+    vendored("requests.packages.urllib3.util.ssl_")
+    vendored("requests.packages.urllib3.util.timeout")
+    vendored("requests.packages.urllib3.util.url")
+    vendored("resolvelib")
+    vendored("rich")
+    vendored("rich.console")
+    vendored("rich.highlighter")
+    vendored("rich.logging")
+    vendored("rich.markup")
+    vendored("rich.progress")
+    vendored("rich.segment")
+    vendored("rich.style")
+    vendored("rich.text")
+    vendored("rich.traceback")
+    if sys.version_info < (3, 11):
+        vendored("tomli")
+    vendored("truststore")
+    vendored("urllib3")
