@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 from datetime import datetime
 from flask import Flask, render_template, request, redirect
@@ -51,7 +51,7 @@ def organize_profile(raw):
         '"projects": [{"title": "", "description": ""}], '
         '"certificates": [""]}\n'
         "Split freeform text into separate list items sensibly. "
-        "If information is missing, leave that field as an empty string, don't invent it."
+        "If information is missing, leave that field as an empty string, don'"'"'t invent it."
     )
     text = call_gemma(system, json.dumps(raw))
     return clean_json(text)
@@ -60,9 +60,9 @@ def organize_profile(raw):
 def rewrite_profile(profile):
     """Sub-phase 1.4: rewrite descriptions into professional resume bullets."""
     system = (
-        "Rewrite each 'description' field under experience and projects into a "
+        "Rewrite each '"'"'description'"'"' field under experience and projects into a "
         "single professional, achievement-oriented resume bullet. Use strong action "
-        "verbs. Do not invent facts or numbers that aren't implied by the input. "
+        "verbs. Do not invent facts or numbers that aren'"'"'t implied by the input. "
         "Return the SAME JSON structure back, only the description fields changed. "
         "No extra text, no markdown fences."
     )
@@ -128,7 +128,7 @@ def generate_summary(profile, target=""):
 
 def generate_about_me(profile):
     system = (
-        "Write a warm, first-person 'About Me' paragraph (3-4 sentences) for a "
+        "Write a warm, first-person '"'"'About Me'"'"' paragraph (3-4 sentences) for a "
         "portfolio website, based on this profile. Professional but personable. "
         "Return ONLY the paragraph text, no labels, no markdown."
     )
@@ -229,10 +229,10 @@ def save_job_id(job_id):
 # 3.4 — AI recommendations. Gemma 4 picks the 3 best matches for the latest profile.
 def get_job_recommendations(profile, jobs):
     system = (
-        "Given a candidate's skills and a list of jobs (id, title, company, "
+        "Given a candidate'"'"'s skills and a list of jobs (id, title, company, "
         "required_skills), pick the 3 best-matching job ids for this candidate. "
         "Return ONLY valid JSON: a list like "
-        '[{"id": 3, "title": "Frontend Developer", "reason": "one short sentence why"}]. '
+        "[{\"id\": 3, \"title\": \"Frontend Developer\", \"reason\": \"one short sentence why\"}]. "
         "No extra text, no markdown fences."
     )
     jobs_summary = [
@@ -308,7 +308,7 @@ def compute_skill_gap(profile_skills, job_skills):
 def generate_readiness_narrative(job, matched, missing, score):
     system = (
         "In 2-3 sentences, explain this readiness score to the candidate in plain, "
-        "encouraging language: what they already have going for them, and what's missing. "
+        "encouraging language: what they already have going for them, and what'"'"'s missing. "
         "Return ONLY the explanation text, no markdown."
     )
     content = json.dumps({"job_title": job["title"], "score": score, "matched_skills": matched, "missing_skills": missing})
@@ -320,7 +320,7 @@ def generate_cover_letter(profile, job):
     system = (
         "Write a professional, concise cover letter (3-4 paragraphs) for this candidate "
         "applying to this specific job. Reference relevant skills and projects from their "
-        "profile that match the job's required skills. Do not invent experience not in the "
+        "profile that match the job'"'"'s required skills. Do not invent experience not in the "
         "profile. Return ONLY the cover letter text, no labels, no markdown."
     )
     content = json.dumps({"profile": profile, "job": job})
@@ -420,4 +420,3 @@ def application_detail(job_id):
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
