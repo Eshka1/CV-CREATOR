@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadyGrad — Access Portal</title>
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styles */
+        :root {
+            --bg-color: #030408;
+            --surface-color: rgba(255, 255, 255, 0.02);
+            --surface-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: #9ea4b3;
+            --accent-cyan: #00f2fe;
+            --accent-purple: #7f00ff;
+            --accent-pink: #ff007f;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Subtle glowing background lights and grid */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glowing-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(127, 0, 255, 0.1) 0%, rgba(0, 242, 254, 0.05) 50%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        /* Auth Container */
+        .auth-container {
+            width: 100%;
+            max-width: 460px;
+            padding: 24px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-decoration: none;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            fill: none;
+            stroke: var(--accent-cyan);
+            stroke-width: 2.2;
+        }
+
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .logo-subtitle {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        /* Card container */
+        .auth-card {
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Border glow */
+        .auth-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink));
+        }
+
+        /* Toggle tabs */
+        .auth-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-tab.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Forms styling */
+        .auth-form {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .auth-form.active {
+            display: flex;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .form-input {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 15px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 18px rgba(0, 242, 254, 0.15);
+        }
+
+        .btn-auth {
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            color: var(--text-primary);
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.2);
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-auth:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 25px rgba(0, 242, 254, 0.35);
+        }
+
+        /* Error alert */
+        .error-alert {
+            background: rgba(255, 95, 86, 0.1);
+            border: 1px solid rgba(255, 95, 86, 0.25);
+            color: #ff5f56;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Glowing Background -->
+    <div class="glowing-bg">
+        <div class="glow-orb"></div>
+    </div>
+
+    <div class="auth-container">
+        <!-- Logo -->
+        <a href="/" class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24">
+                <path d="M2 8l10-5 10 5-10 5L2 8z" stroke="currentColor"/>
+                <path d="M6 10v5c0 2 2 4 6 4s6-2 6-4v-5" stroke="currentColor"/>
+            </svg>
+            <div class="logo-text-group">
+                <span class="logo-title">ReadyGrad</span>
+                <span class="logo-subtitle">AI Career Platform</span>
+            </div>
+        </a>
+
+        <!-- Card -->
+        <div class="auth-card">
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <div class="auth-tab {% if mode == 'signup' %}active{% endif %}" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+                <div class="auth-tab {% if mode == 'login' %}active{% endif %}" id="tab-login" onclick="switchTab('login')">Log In</div>
+            </div>
+
+            <!-- Error -->
+            {% if error %}
+            <div class="error-alert">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Signup Form -->
+            <form action="/signup" method="POST" class="auth-form {% if mode == 'signup' %}active{% endif %}" id="form-signup">
+                <div class="form-group">
+                    <label class="form-label" for="signup-name">Full Name</label>
+                    <input type="text" id="signup-name" name="name" class="form-input" placeholder="e.g. John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signup-email">Email Address</label>
+                    <input type="email" id="signup-email" name="email" class="form-input" placeholder="e.g. john@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signup-phone">Phone Number</label>
+                    <input type="tel" id="signup-phone" name="phone" class="form-input" placeholder="e.g. +8801700000000" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="signup-password">Password</label>
+                    <input type="password" id="signup-password" name="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-auth">Create Account</button>
+            </form>
+
+            <!-- Login Form -->
+            <form action="/login" method="POST" class="auth-form {% if mode == 'login' %}active{% endif %}" id="form-login">
+                <div class="form-group">
+                    <label class="form-label" for="login-email">Email Address</label>
+                    <input type="email" id="login-email" name="email" class="form-input" placeholder="john@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-auth">Access Dashboard</button>
+            </form>
+
+            <a href="/" class="back-link">← Return to Homepage</a>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(mode) {
+            // Update tabs
+            document.getElementById('tab-signup').classList.remove('active');
+            document.getElementById('tab-login').classList.remove('active');
+            
+            // Update forms
+            document.getElementById('form-signup').classList.remove('active');
+            document.getElementById('form-login').classList.remove('active');
+            
+            if (mode === 'signup') {
+                document.getElementById('tab-signup').classList.add('active');
+                document.getElementById('form-signup').classList.add('active');
+            } else {
+                document.getElementById('tab-login').classList.add('active');
+                document.getElementById('form-login').classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

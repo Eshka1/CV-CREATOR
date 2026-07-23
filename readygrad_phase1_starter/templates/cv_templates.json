@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0",
+  "purpose": "A library of resume/CV layout templates. Give this file to an LLM (e.g. Gemma via Antigravity) along with a person's real details, and ask it to pick one 'template_id' and fill the 'fields' with that person's info to produce a matching CV (as HTML/CSS, or as instructions for a design tool).",
+  "how_to_use": [
+    "1. Pick a template_id (or let the model pick the one that best fits the person's job/industry).",
+    "2. Give the model the person's real data: name, title, photo, contact, education, experience, skills, etc.",
+    "3. Ask the model to output HTML+CSS (or a docx/pptx layout) that follows 'layout', 'color_palette', and 'sections' exactly, just replacing placeholder text with the real data.",
+    "4. Keep photo circular crop, section order, and color roles the same as specified — that's what makes it 'look like' the template."
+  ],
+  "templates": [
+    {
+      "template_id": "dark_diagonal_sidebar",
+      "example_name": "Jenna Melinda",
+      "best_for": "Business analyst, corporate, data roles",
+      "layout": {
+        "type": "asymmetric_split",
+        "left_panel": "dark charcoal sidebar (~35% width) with profile, skills, contact",
+        "right_panel": "white background with diagonal cut, circular photo top-right, timeline-style education/experience",
+        "photo_shape": "circle",
+        "photo_position": "top-right, overlapping the diagonal edge"
+      },
+      "color_palette": {
+        "background_dark": "#2B2B2B",
+        "background_light": "#FFFFFF",
+        "accent": "#D97B29"
+      },
+      "typography": {
+        "name": "large bold, two-tone (first name accent color, last name white)",
+        "section_labels": "small caps, rotated vertical labels for EDUCATION / EXPERIENCE"
+      },
+      "sections": ["name_title_photo", "profile_summary", "skills_bars", "contact", "education_timeline", "experience_timeline"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "profile_summary": "",
+        "skills": [{"name": "", "level_percent": 0}],
+        "contact": {"address": "", "phone": "", "email": ""},
+        "education": [{"years": "", "school": "", "degree": ""}],
+        "experience": [{"years": "", "company": "", "description": ""}]
+      }
+    },
+    {
+      "template_id": "warm_geometric_split",
+      "example_name": "Connor Hamilton",
+      "best_for": "Creative/design roles",
+      "layout": {
+        "type": "vertical_split",
+        "left_panel": "dark sidebar (~35%) with photo in circle + geometric line accents, references, languages, skills",
+        "right_panel": "light background with rounded orange/brown banner containing name + title, timeline sections below",
+        "photo_shape": "circle with thick white border",
+        "photo_position": "top-left"
+      },
+      "color_palette": {
+        "background_dark": "#2E2A26",
+        "background_light": "#EDECE8",
+        "accent": "#B97D4B"
+      },
+      "sections": ["name_title_banner", "reference", "language_bars", "skills_stars", "education_timeline", "experience_timeline"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "references": [{"name": "", "company_role": "", "phone": ""}],
+        "languages": [{"name": "", "level_percent": 0}],
+        "skills": [{"name": "", "stars_out_of_5": 0}],
+        "education": [{"years": "", "school": "", "degree": "", "bullets": [""]}],
+        "experience": [{"years": "", "company": "", "role": "", "bullets": [""]}]
+      }
+    },
+    {
+      "template_id": "arch_photo_two_tone",
+      "example_name": "Jonathan Patterson",
+      "best_for": "Art director, senior creative/management",
+      "layout": {
+        "type": "vertical_split",
+        "left_panel": "light gray column with arch-shaped photo frame at top, education/skills/languages/contact below",
+        "right_panel": "white with dark gray header band containing name + title, profile/experience/achievements below",
+        "photo_shape": "arch (rounded-top rectangle)",
+        "photo_position": "top-left, bleeding into header band"
+      },
+      "color_palette": {
+        "background_dark": "#6E6D68",
+        "background_light": "#E4E3DF",
+        "text": "#1A1A1A"
+      },
+      "sections": ["photo_arch", "name_title_header", "education", "skills_list", "languages_list", "contact", "profile_info", "experience_timeline", "achievements"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "education": [{"years": "", "school": "", "degree": "", "bullets": [""]}],
+        "skills": [""],
+        "languages": [""],
+        "contact": {"phone": "", "email": "", "address": "", "website": ""},
+        "profile_info": "",
+        "experience": [{"years": "", "role": "", "company": "", "bullets": [""]}],
+        "achievements": [{"years": "", "description": ""}]
+      }
+    },
+    {
+      "template_id": "navy_gold_sidebar",
+      "example_name": "Lorna Alvarado",
+      "best_for": "Marketing, management",
+      "layout": {
+        "type": "vertical_split",
+        "left_panel": "navy sidebar (~35%) with circular gold-ringed photo, contact/education/skills/languages",
+        "right_panel": "white with name/title header, about-me paragraph, vertical-line experience timeline",
+        "photo_shape": "circle with thin gold ring",
+        "photo_position": "top-left"
+      },
+      "color_palette": {
+        "background_dark": "#2E3A4D",
+        "background_light": "#FFFFFF",
+        "accent": "#C9A24B"
+      },
+      "sections": ["name_title", "about_me", "contact", "education", "skills_list", "languages_list", "experience_timeline"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "about_me": "",
+        "contact": {"phone": "", "email": "", "address": ""},
+        "education": [{"school": "", "degree": "", "years": ""}],
+        "skills": [""],
+        "languages": [""],
+        "experience": [{"role": "", "company": "", "location": "", "years": "", "bullets": [""]}]
+      }
+    },
+    {
+      "template_id": "sage_photo_block",
+      "example_name": "Catrine Ziv",
+      "best_for": "IT project manager, operations",
+      "layout": {
+        "type": "vertical_split_with_photo_block",
+        "left_panel": "sage-green column: full photo block at top, then profile/skills/awards on cream background, contact at bottom",
+        "right_panel": "cream background: name/title header, work experience, educational history",
+        "photo_shape": "rectangle, full-bleed at top of left column",
+        "photo_position": "top-left, no crop to circle"
+      },
+      "color_palette": {
+        "background_sage": "#9BA88F",
+        "background_cream": "#F3F1EA",
+        "text": "#2A2A2A"
+      },
+      "sections": ["photo_block", "name_title", "profile", "skills_list", "awards", "contact", "experience", "education_history"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "profile": "",
+        "skills": [""],
+        "awards": [{"title": "", "org_year": ""}],
+        "contact": {"phone": "", "email": "", "website": ""},
+        "experience": [{"role": "", "company": "", "dates": "", "bullets": [""]}],
+        "education": [{"school": "", "degree": "", "dates": "", "bullets": [""]}]
+      }
+    },
+    {
+      "template_id": "sage_photo_topbar",
+      "example_name": "Emma Williams",
+      "best_for": "Web/graphic designer",
+      "layout": {
+        "type": "vertical_split",
+        "left_panel": "sage-green narrow column with square photo at top, contact icons list, expertise list, education list",
+        "right_panel": "white/cream with name + title header (dark bar), profile paragraph, job experience entries",
+        "photo_shape": "square/rectangle",
+        "photo_position": "top-left"
+      },
+      "color_palette": {
+        "background_sage": "#7C8B72",
+        "background_light": "#F5F5F0",
+        "text": "#2A2A2A"
+      },
+      "sections": ["photo", "name_title_bar", "contacts_icons", "expertise_list", "education_list", "profile", "experience_list"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "contacts": {"address": "", "phone": "", "email": "", "website": "", "linkedin": ""},
+        "expertise": [""],
+        "education": [{"degree_major": "", "school_years": ""}],
+        "profile": "",
+        "experience": [{"role": "", "company_location_years": "", "bullets": [""]}]
+      }
+    },
+    {
+      "template_id": "dark_split_soft_shapes",
+      "example_name": "Morgan Maxwell",
+      "best_for": "Graphic designer",
+      "layout": {
+        "type": "vertical_split_soft",
+        "left_panel": "cream/off-white background: large name in two weights, title, skills percentages, education, language donut charts",
+        "right_panel": "dark green background: circular photo top, rounded 'about me' pill banner spanning both halves, professional experience list",
+        "photo_shape": "circle with white border",
+        "photo_position": "top-right"
+      },
+      "color_palette": {
+        "background_dark": "#12241A",
+        "background_light": "#EDECE6",
+        "accent": "#AABE96"
+      },
+      "sections": ["name_title", "about_me_banner", "skills_percent", "education", "languages_donut", "professional_experience", "contact_icons"],
+      "fields": {
+        "name": "", "title": "", "photo_url": "",
+        "about_me": "",
+        "skills": [{"name": "", "percent": 0}],
+        "education": [{"degree": "", "school": "", "address": "", "years": ""}],
+        "languages": [{"name": "", "percent": 0}],
+        "experience": [{"role": "", "dates_company": "", "bullets": [""]}],
+        "contact": {"phone": "", "website": "", "address": ""}
+      }
+    }
+  ],
+  "generation_prompt_example": "Using cv_templates.json, generate an HTML+CSS resume for [PERSON NAME], a [JOB TITLE], using template_id '[CHOSEN TEMPLATE]'. Fill every field in that template's 'fields' object with this real data: [PASTE DATA]. Keep the exact layout type, color roles, and section order from the template — only change text/photo content."
+}
