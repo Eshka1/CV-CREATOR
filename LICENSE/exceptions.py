@@ -1,473 +1,971 @@
-"""
-:mod:`websockets.exceptions` defines the following hierarchy of exceptions.
+"""Exceptions used throughout package.
 
-* :exc:`WebSocketException`
-    * :exc:`ConnectionClosed`
-        * :exc:`ConnectionClosedOK`
-        * :exc:`ConnectionClosedError`
-    * :exc:`InvalidURI`
-    * :exc:`InvalidProxy`
-    * :exc:`InvalidHandshake`
-        * :exc:`SecurityError`
-        * :exc:`ProxyError`
-            * :exc:`InvalidProxyMessage`
-            * :exc:`InvalidProxyStatus`
-        * :exc:`InvalidMessage`
-        * :exc:`InvalidStatus`
-        * :exc:`InvalidStatusCode` (legacy)
-        * :exc:`InvalidHeader`
-            * :exc:`InvalidHeaderFormat`
-            * :exc:`InvalidHeaderValue`
-            * :exc:`InvalidOrigin`
-            * :exc:`InvalidUpgrade`
-        * :exc:`NegotiationError`
-            * :exc:`DuplicateParameter`
-            * :exc:`InvalidParameterName`
-            * :exc:`InvalidParameterValue`
-        * :exc:`AbortHandshake` (legacy)
-        * :exc:`RedirectHandshake` (legacy)
-    * :exc:`ProtocolError` (Sans-I/O)
-    * :exc:`PayloadTooBig` (Sans-I/O)
-    * :exc:`InvalidState` (Sans-I/O)
-    * :exc:`ConcurrencyError`
-
+This module MUST NOT try to import from anything within `pip._internal` to
+operate. This is expected to be importable from any/all files within the
+subpackage and, thus, should not depend on them.
 """
 
 from __future__ import annotations
 
-import warnings
+import configparser
+import contextlib
+import locale
+import logging
+import pathlib
+import re
+import sys
+import traceback
+from collections.abc import Iterable, Iterator
+from itertools import chain, groupby, repeat
+from typing import TYPE_CHECKING, Literal
 
-from .imports import lazy_import
+from pip._vendor.packaging.requirements import InvalidRequirement
+from pip._vendor.packaging.version import InvalidVersion
+from pip._vendor.rich.console import Console, ConsoleOptions, RenderResult
+from pip._vendor.rich.markup import escape
+from pip._vendor.rich.text import Text
 
+if TYPE_CHECKING:
+    from hashlib import _Hash
 
-__all__ = [
-    "WebSocketException",
-    "ConnectionClosed",
-    "ConnectionClosedOK",
-    "ConnectionClosedError",
-    "InvalidURI",
-    "InvalidProxy",
-    "InvalidHandshake",
-    "SecurityError",
-    "ProxyError",
-    "InvalidProxyMessage",
-    "InvalidProxyStatus",
-    "InvalidMessage",
-    "InvalidStatus",
-    "InvalidHeader",
-    "InvalidHeaderFormat",
-    "InvalidHeaderValue",
-    "InvalidOrigin",
-    "InvalidUpgrade",
-    "NegotiationError",
-    "DuplicateParameter",
-    "InvalidParameterName",
-    "InvalidParameterValue",
-    "ProtocolError",
-    "PayloadTooBig",
-    "InvalidState",
-    "ConcurrencyError",
-]
+    from pip._vendor.requests.models import PreparedRequest, Request, Response
+
+    from pip._internal.metadata import BaseDistribution
+    from pip._internal.models.link import Link
+    from pip._internal.network.download import _FileDownload
+    from pip._internal.req.req_install import InstallRequirement
+
+logger = logging.getLogger(__name__)
 
 
-class WebSocketException(Exception):
+#
+# Scaffolding
+#
+def _is_kebab_case(s: str) -> bool:
+    return re.match(r"^[a-z]+(-[a-z]+)*$", s) is not None
+
+
+def _prefix_with_indent(
+    s: Text | str,
+    console: Console,
+    *,
+    prefix: str,
+    indent: str,
+) -> Text:
+    if isinstance(s, Text):
+        text = s
+    else:
+        text = console.render_str(s)
+
+    return console.render_str(prefix, overflow="ignore") + console.render_str(
+        f"\n{indent}", overflow="ignore"
+    ).join(text.split(allow_blank=True))
+
+
+class PipError(Exception):
+    """The base pip error."""
+
+
+class DiagnosticPipError(PipError):
+    """An error, that presents diagnostic information to the user.
+
+    This contains a bunch of logic, to enable pretty presentation of our error
+    messages. Each error gets a unique reference. Each error can also include
+    additional context, a hint and/or a note -- which are presented with the
+    main error message in a consistent style.
+
+    This is adapted from the error output styling in `sphinx-theme-builder`.
     """
-    Base class for all exceptions defined by websockets.
 
+    reference: str
+
+    def __init__(
+        self,
+        *,
+        kind: Literal["error", "warning"] = "error",
+        reference: str | None = None,
+        message: str | Text,
+        context: str | Text | None,
+        hint_stmt: str | Text | None,
+        note_stmt: str | Text | None = None,
+        link: str | None = None,
+    ) -> None:
+        # Ensure a proper reference is provided.
+        if reference is None:
+            assert hasattr(self, "reference"), "error reference not provided!"
+            reference = self.reference
+        assert _is_kebab_case(reference), "error reference must be kebab-case!"
+
+        self.kind = kind
+        self.reference = reference
+
+        self.message = message
+        self.context = context
+
+        self.note_stmt = note_stmt
+        self.hint_stmt = hint_stmt
+
+        self.link = link
+
+        super().__init__(f"<{self.__class__.__name__}: {self.reference}>")
+
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__}("
+            f"reference={self.reference!r}, "
+            f"message={self.message!r}, "
+            f"context={self.context!r}, "
+            f"note_stmt={self.note_stmt!r}, "
+            f"hint_stmt={self.hint_stmt!r}"
+            ")>"
+        )
+
+    def __rich_console__(
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> RenderResult:
+        colour = "red" if self.kind == "error" else "yellow"
+
+        yield f"[{colour} bold]{self.kind}[/]: [bold]{self.reference}[/]"
+        yield ""
+
+        if not options.ascii_only:
+            # Present the main message, with relevant context indented.
+            if self.context is not None:
+                yield _prefix_with_indent(
+                    self.message,
+                    console,
+                    prefix=f"[{colour}]×[/] ",
+                    indent=f"[{colour}]│[/] ",
+                )
+                yield _prefix_with_indent(
+                    self.context,
+                    console,
+                    prefix=f"[{colour}]╰─>[/] ",
+                    indent=f"[{colour}]   [/] ",
+                )
+            else:
+                yield _prefix_with_indent(
+                    self.message,
+                    console,
+                    prefix="[red]×[/] ",
+                    indent="  ",
+                )
+        else:
+            yield self.message
+            if self.context is not None:
+                yield ""
+                yield self.context
+
+        if self.note_stmt is not None or self.hint_stmt is not None:
+            yield ""
+
+        if self.note_stmt is not None:
+            yield _prefix_with_indent(
+                self.note_stmt,
+                console,
+                prefix="[magenta bold]note[/]: ",
+                indent="      ",
+            )
+        if self.hint_stmt is not None:
+            yield _prefix_with_indent(
+                self.hint_stmt,
+                console,
+                prefix="[cyan bold]hint[/]: ",
+                indent="      ",
+            )
+
+        if self.link is not None:
+            yield ""
+            yield f"Link: {self.link}"
+
+
+#
+# Actual Errors
+#
+class ConfigurationError(PipError):
+    """General exception in configuration"""
+
+
+class InstallationError(PipError):
+    """General exception during installation"""
+
+
+class FailedToPrepareCandidate(InstallationError):
+    """Raised when we fail to prepare a candidate (i.e. fetch and generate metadata).
+
+    This is intentionally not a diagnostic error, since the output will be presented
+    above this error, when this occurs. This should instead present information to the
+    user.
     """
 
+    def __init__(
+        self, *, package_name: str, requirement_chain: str, failed_step: str
+    ) -> None:
+        super().__init__(f"Failed to build '{package_name}' when {failed_step.lower()}")
+        self.package_name = package_name
+        self.requirement_chain = requirement_chain
+        self.failed_step = failed_step
 
-class ConnectionClosed(WebSocketException):
-    """
-    Raised when trying to interact with a closed connection.
 
-    Attributes:
-        rcvd: If a close frame was received, its code and reason are available
-            in ``rcvd.code`` and ``rcvd.reason``.
-        sent: If a close frame was sent, its code and reason are available
-            in ``sent.code`` and ``sent.reason``.
-        rcvd_then_sent: If close frames were received and sent, this attribute
-            tells in which order this happened, from the perspective of this
-            side of the connection.
+class MissingPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml has `build-system`, but no `build-system.requires`."""
 
+    reference = "missing-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str) -> None:
+        super().__init__(
+            message=f"Can not process {escape(package)}",
+            context=Text(
+                "This package has an invalid pyproject.toml file.\n"
+                "The [build-system] table is missing the mandatory `requires` key."
+            ),
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
+        )
+
+
+class InvalidPyProjectBuildRequires(DiagnosticPipError):
+    """Raised when pyproject.toml an invalid `build-system.requires`."""
+
+    reference = "invalid-pyproject-build-system-requires"
+
+    def __init__(self, *, package: str, reason: str) -> None:
+        super().__init__(
+            message=f"Can not process {escape(package)}",
+            context=Text(
+                "This package has an invalid `build-system.requires` key in "
+                f"pyproject.toml.\n{reason}"
+            ),
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+            hint_stmt=Text("See PEP 518 for the detailed specification."),
+        )
+
+
+class NoneMetadataError(PipError):
+    """Raised when accessing a Distribution's "METADATA" or "PKG-INFO".
+
+    This signifies an inconsistency, when the Distribution claims to have
+    the metadata file (if not, raise ``FileNotFoundError`` instead), but is
+    not actually able to produce its content. This may be due to permission
+    errors.
     """
 
     def __init__(
         self,
-        rcvd: frames.Close | None,
-        sent: frames.Close | None,
-        rcvd_then_sent: bool | None = None,
+        dist: BaseDistribution,
+        metadata_name: str,
     ) -> None:
-        self.rcvd = rcvd
-        self.sent = sent
-        self.rcvd_then_sent = rcvd_then_sent
-        assert (self.rcvd_then_sent is None) == (self.rcvd is None or self.sent is None)
+        """
+        :param dist: A Distribution object.
+        :param metadata_name: The name of the metadata being accessed
+            (can be "METADATA" or "PKG-INFO").
+        """
+        self.dist = dist
+        self.metadata_name = metadata_name
 
     def __str__(self) -> str:
-        if self.rcvd is None:
-            if self.sent is None:
-                return "no close frame received or sent"
-            else:
-                return f"sent {self.sent}; no close frame received"
-        else:
-            if self.sent is None:
-                return f"received {self.rcvd}; no close frame sent"
-            else:
-                if self.rcvd_then_sent:
-                    return f"received {self.rcvd}; then sent {self.sent}"
-                else:
-                    return f"sent {self.sent}; then received {self.rcvd}"
-
-    # code and reason attributes are provided for backwards-compatibility
-
-    @property
-    def code(self) -> int:
-        warnings.warn(  # deprecated in 13.1 - 2024-09-21
-            "ConnectionClosed.code is deprecated; "
-            "use Protocol.close_code or ConnectionClosed.rcvd.code",
-            DeprecationWarning,
-        )
-        if self.rcvd is None:
-            return frames.CloseCode.ABNORMAL_CLOSURE
-        return self.rcvd.code
-
-    @property
-    def reason(self) -> str:
-        warnings.warn(  # deprecated in 13.1 - 2024-09-21
-            "ConnectionClosed.reason is deprecated; "
-            "use Protocol.close_reason or ConnectionClosed.rcvd.reason",
-            DeprecationWarning,
-        )
-        if self.rcvd is None:
-            return ""
-        return self.rcvd.reason
+        # Use `dist` in the error message because its stringification
+        # includes more information, like the version and location.
+        return f"None {self.metadata_name} metadata found for distribution: {self.dist}"
 
 
-class ConnectionClosedOK(ConnectionClosed):
-    """
-    Like :exc:`ConnectionClosed`, when the connection terminated properly.
-
-    A close code with code 1000 (OK) or 1001 (going away) or without a code was
-    received and sent.
-
-    """
-
-
-class ConnectionClosedError(ConnectionClosed):
-    """
-    Like :exc:`ConnectionClosed`, when the connection terminated with an error.
-
-    A close frame with a code other than 1000 (OK) or 1001 (going away) was
-    received or sent, or the closing handshake didn't complete properly.
-
-    """
-
-
-class InvalidURI(WebSocketException):
-    """
-    Raised when connecting to a URI that isn't a valid WebSocket URI.
-
-    """
-
-    def __init__(self, uri: str, msg: str) -> None:
-        self.uri = uri
-        self.msg = msg
+class UserInstallationInvalid(InstallationError):
+    """A --user install is requested on an environment without user site."""
 
     def __str__(self) -> str:
-        return f"{self.uri} isn't a valid URI: {self.msg}"
+        return "User base directory is not specified"
 
 
-class InvalidProxy(WebSocketException):
-    """
-    Raised when connecting via a proxy that isn't valid.
-
-    """
-
-    def __init__(self, proxy: str, msg: str) -> None:
-        self.proxy = proxy
-        self.msg = msg
-
+class InvalidSchemeCombination(InstallationError):
     def __str__(self) -> str:
-        return f"{self.proxy} isn't a valid proxy: {self.msg}"
+        before = ", ".join(str(a) for a in self.args[:-1])
+        return f"Cannot set {before} and {self.args[-1]} together"
 
 
-class InvalidHandshake(WebSocketException):
-    """
-    Base class for exceptions raised when the opening handshake fails.
-
-    """
+class DistributionNotFound(InstallationError):
+    """Raised when a distribution cannot be found to satisfy a requirement"""
 
 
-class SecurityError(InvalidHandshake):
-    """
-    Raised when a handshake request or response breaks a security rule.
-
-    Security limits can be configured with :doc:`environment variables
-    <../reference/variables>`.
-
-    """
+class RequirementsFileParseError(InstallationError):
+    """Raised when a general error occurs parsing a requirements file line."""
 
 
-class ProxyError(InvalidHandshake):
-    """
-    Raised when failing to connect to a proxy.
-
-    """
+class BestVersionAlreadyInstalled(PipError):
+    """Raised when the most up-to-date version of a package is already
+    installed."""
 
 
-class InvalidProxyMessage(ProxyError):
-    """
-    Raised when an HTTP proxy response is malformed.
-
-    """
+class BadCommand(PipError):
+    """Raised when virtualenv or a command is not found"""
 
 
-class InvalidProxyStatus(ProxyError):
-    """
-    Raised when an HTTP proxy rejects the connection.
+class CommandError(PipError):
+    """Raised when there is an error in command-line arguments"""
 
-    """
 
-    def __init__(self, response: http11.Response) -> None:
+class PreviousBuildDirError(PipError):
+    """Raised when there's a previous conflicting build directory"""
+
+
+class NetworkConnectionError(PipError):
+    """HTTP connection error"""
+
+    def __init__(
+        self,
+        error_msg: str,
+        response: Response | None = None,
+        request: Request | PreparedRequest | None = None,
+    ) -> None:
+        """
+        Initialize NetworkConnectionError with  `request` and `response`
+        objects.
+        """
         self.response = response
+        self.request = request
+        self.error_msg = error_msg
+        if (
+            self.response is not None
+            and not self.request
+            and hasattr(response, "request")
+        ):
+            self.request = self.response.request
+        super().__init__(error_msg, response, request)
 
     def __str__(self) -> str:
-        return f"proxy rejected connection: HTTP {self.response.status_code:d}"
+        return str(self.error_msg)
 
 
-class InvalidMessage(InvalidHandshake):
+class InvalidWheelFilename(InstallationError):
+    """Invalid wheel filename."""
+
+
+class UnsupportedWheel(InstallationError):
+    """Unsupported wheel."""
+
+
+class InvalidWheel(InstallationError):
+    """Invalid (e.g. corrupt) wheel."""
+
+    def __init__(self, location: str, name: str):
+        self.location = location
+        self.name = name
+
+    def __str__(self) -> str:
+        return f"Wheel '{self.name}' located at {self.location} is invalid."
+
+
+class MetadataInconsistent(InstallationError):
+    """Built metadata contains inconsistent information.
+
+    This is raised when the metadata contains values (e.g. name and version)
+    that do not match the information previously obtained from sdist filename,
+    user-supplied ``#egg=`` value, or an install requirement name.
     """
-    Raised when a handshake request or response is malformed.
 
-    """
-
-
-class InvalidStatus(InvalidHandshake):
-    """
-    Raised when a handshake response rejects the WebSocket upgrade.
-
-    """
-
-    def __init__(self, response: http11.Response) -> None:
-        self.response = response
+    def __init__(
+        self, ireq: InstallRequirement, field: str, f_val: str, m_val: str
+    ) -> None:
+        self.ireq = ireq
+        self.field = field
+        self.f_val = f_val
+        self.m_val = m_val
 
     def __str__(self) -> str:
         return (
-            f"server rejected WebSocket connection: HTTP {self.response.status_code:d}"
+            f"Requested {self.ireq} has inconsistent {self.field}: "
+            f"expected {self.f_val!r}, but metadata has {self.m_val!r}"
         )
 
 
-class InvalidHeader(InvalidHandshake):
-    """
-    Raised when an HTTP header doesn't have a valid format or value.
+class MetadataInvalid(InstallationError):
+    """Metadata is invalid."""
 
-    """
-
-    def __init__(self, name: str, value: str | None = None) -> None:
-        self.name = name
-        self.value = value
+    def __init__(self, ireq: InstallRequirement, error: str) -> None:
+        self.ireq = ireq
+        self.error = error
 
     def __str__(self) -> str:
-        if self.value is None:
-            return f"missing {self.name} header"
-        elif self.value == "":
-            return f"empty {self.name} header"
-        else:
-            return f"invalid {self.name} header: {self.value}"
+        return f"Requested {self.ireq} has invalid metadata: {self.error}"
 
 
-class InvalidHeaderFormat(InvalidHeader):
-    """
-    Raised when an HTTP header cannot be parsed.
+class InstallationSubprocessError(DiagnosticPipError, InstallationError):
+    """A subprocess call failed."""
 
-    The format of the header doesn't match the grammar for that header.
-
-    """
-
-    def __init__(self, name: str, error: str, header: str, pos: int) -> None:
-        super().__init__(name, f"{error} at {pos} in {header}")
-
-
-class InvalidHeaderValue(InvalidHeader):
-    """
-    Raised when an HTTP header has a wrong value.
-
-    The format of the header is correct but the value isn't acceptable.
-
-    """
-
-
-class InvalidOrigin(InvalidHeader):
-    """
-    Raised when the Origin header in a request isn't allowed.
-
-    """
-
-    def __init__(self, origin: str | None) -> None:
-        super().__init__("Origin", origin)
-
-
-class InvalidUpgrade(InvalidHeader):
-    """
-    Raised when the Upgrade or Connection header isn't correct.
-
-    """
-
-
-class NegotiationError(InvalidHandshake):
-    """
-    Raised when negotiating an extension or a subprotocol fails.
-
-    """
-
-
-class DuplicateParameter(NegotiationError):
-    """
-    Raised when a parameter name is repeated in an extension header.
-
-    """
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __str__(self) -> str:
-        return f"duplicate parameter: {self.name}"
-
-
-class InvalidParameterName(NegotiationError):
-    """
-    Raised when a parameter name in an extension header is invalid.
-
-    """
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __str__(self) -> str:
-        return f"invalid parameter name: {self.name}"
-
-
-class InvalidParameterValue(NegotiationError):
-    """
-    Raised when a parameter value in an extension header is invalid.
-
-    """
-
-    def __init__(self, name: str, value: str | None) -> None:
-        self.name = name
-        self.value = value
-
-    def __str__(self) -> str:
-        if self.value is None:
-            return f"missing value for parameter {self.name}"
-        elif self.value == "":
-            return f"empty value for parameter {self.name}"
-        else:
-            return f"invalid value for parameter {self.name}: {self.value}"
-
-
-class ProtocolError(WebSocketException):
-    """
-    Raised when receiving or sending a frame that breaks the protocol.
-
-    The Sans-I/O implementation raises this exception when:
-
-    * receiving or sending a frame that contains invalid data;
-    * receiving or sending an invalid sequence of frames.
-
-    """
-
-
-class PayloadTooBig(WebSocketException):
-    """
-    Raised when parsing a frame with a payload that exceeds the maximum size.
-
-    The Sans-I/O layer uses this exception internally. It doesn't bubble up to
-    the I/O layer.
-
-    The :meth:`~websockets.extensions.Extension.decode` method of extensions
-    must raise :exc:`PayloadTooBig` if decoding a frame would exceed the limit.
-
-    """
+    reference = "subprocess-exited-with-error"
 
     def __init__(
         self,
-        size_or_message: int | None | str,
-        max_size: int | None = None,
-        current_size: int | None = None,
+        *,
+        command_description: str,
+        exit_code: int,
+        output_lines: list[str] | None,
     ) -> None:
-        if isinstance(size_or_message, str):
-            assert max_size is None
-            assert current_size is None
-            warnings.warn(  # deprecated in 14.0 - 2024-11-09
-                "PayloadTooBig(message) is deprecated; "
-                "change to PayloadTooBig(size, max_size)",
-                DeprecationWarning,
-            )
-            self.message: str | None = size_or_message
+        if output_lines is None:
+            output_prompt = Text("No available output.")
         else:
-            self.message = None
-            self.size: int | None = size_or_message
-            assert max_size is not None
-            self.max_size: int = max_size
-            self.current_size: int | None = None
-            self.set_current_size(current_size)
+            output_prompt = (
+                Text.from_markup(f"[red][{len(output_lines)} lines of output][/]\n")
+                + Text("".join(output_lines))
+                + Text.from_markup(R"[red]\[end of output][/]")
+            )
+
+        super().__init__(
+            message=(
+                f"[green]{escape(command_description)}[/] did not run successfully.\n"
+                f"exit code: {exit_code}"
+            ),
+            context=output_prompt,
+            hint_stmt=None,
+            note_stmt=(
+                "This error originates from a subprocess, and is likely not a "
+                "problem with pip."
+            ),
+        )
+
+        self.command_description = command_description
+        self.exit_code = exit_code
 
     def __str__(self) -> str:
-        if self.message is not None:
-            return self.message
+        return f"{self.command_description} exited with {self.exit_code}"
+
+
+class MetadataGenerationFailed(DiagnosticPipError, InstallationError):
+    reference = "metadata-generation-failed"
+
+    def __init__(
+        self,
+        *,
+        package_details: str,
+    ) -> None:
+        super().__init__(
+            message="Encountered error while generating package metadata.",
+            context=escape(package_details),
+            hint_stmt="See above for details.",
+            note_stmt="This is an issue with the package mentioned above, not pip.",
+        )
+
+    def __str__(self) -> str:
+        return "metadata generation failed"
+
+
+class HashErrors(InstallationError):
+    """Multiple HashError instances rolled into one for reporting"""
+
+    def __init__(self) -> None:
+        self.errors: list[HashError] = []
+
+    def append(self, error: HashError) -> None:
+        self.errors.append(error)
+
+    def __str__(self) -> str:
+        lines = []
+        self.errors.sort(key=lambda e: e.order)
+        for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
+            lines.append(cls.head)
+            lines.extend(e.body() for e in errors_of_cls)
+        if lines:
+            return "\n".join(lines)
+        return ""
+
+    def __bool__(self) -> bool:
+        return bool(self.errors)
+
+
+class HashError(InstallationError):
+    """
+    A failure to verify a package against known-good hashes
+
+    :cvar order: An int sorting hash exception classes by difficulty of
+        recovery (lower being harder), so the user doesn't bother fretting
+        about unpinned packages when he has deeper issues, like VCS
+        dependencies, to deal with. Also keeps error reports in a
+        deterministic order.
+    :cvar head: A section heading for display above potentially many
+        exceptions of this kind
+    :ivar req: The InstallRequirement that triggered this error. This is
+        pasted on after the exception is instantiated, because it's not
+        typically available earlier.
+
+    """
+
+    req: InstallRequirement | None = None
+    head = ""
+    order: int = -1
+
+    def body(self) -> str:
+        """Return a summary of me for display under the heading.
+
+        This default implementation simply prints a description of the
+        triggering requirement.
+
+        :param req: The InstallRequirement that provoked this error, with
+            its link already populated by the resolver's _populate_link().
+
+        """
+        return f"    {self._requirement_name()}"
+
+    def __str__(self) -> str:
+        return f"{self.head}\n{self.body()}"
+
+    def _requirement_name(self) -> str:
+        """Return a description of the requirement that triggered me.
+
+        This default implementation returns long description of the req, with
+        line numbers
+
+        """
+        return str(self.req) if self.req else "unknown package"
+
+
+class VcsHashUnsupported(HashError):
+    """A hash was provided for a version-control-system-based requirement, but
+    we don't have a method for hashing those."""
+
+    order = 0
+    head = (
+        "Can't verify hashes for these requirements because we don't "
+        "have a way to hash version control repositories:"
+    )
+
+
+class DirectoryUrlHashUnsupported(HashError):
+    """A hash was provided for a version-control-system-based requirement, but
+    we don't have a method for hashing those."""
+
+    order = 1
+    head = (
+        "Can't verify hashes for these file:// requirements because they "
+        "point to directories:"
+    )
+
+
+class HashMissing(HashError):
+    """A hash was needed for a requirement but is absent."""
+
+    order = 2
+    head = (
+        "Hashes are required in --require-hashes mode, but they are "
+        "missing from some requirements. Here is a list of those "
+        "requirements along with the hashes their downloaded archives "
+        "actually had. Add lines like these to your requirements files to "
+        "prevent tampering. (If you did not enable --require-hashes "
+        "manually, note that it turns on automatically when any package "
+        "has a hash.)"
+    )
+
+    def __init__(self, gotten_hash: str) -> None:
+        """
+        :param gotten_hash: The hash of the (possibly malicious) archive we
+            just downloaded
+        """
+        self.gotten_hash = gotten_hash
+
+    def body(self) -> str:
+        # Dodge circular import.
+        from pip._internal.utils.hashes import FAVORITE_HASH
+
+        package = None
+        if self.req:
+            # In the case of URL-based requirements, display the original URL
+            # seen in the requirements file rather than the package name,
+            # so the output can be directly copied into the requirements file.
+            package = (
+                self.req.original_link
+                if self.req.is_direct
+                # In case someone feeds something downright stupid
+                # to InstallRequirement's constructor.
+                else getattr(self.req, "req", None)
+            )
+        return "    {} --hash={}:{}".format(
+            package or "unknown package", FAVORITE_HASH, self.gotten_hash
+        )
+
+
+class HashUnpinned(HashError):
+    """A requirement had a hash specified but was not pinned to a specific
+    version."""
+
+    order = 3
+    head = (
+        "In --require-hashes mode, all requirements must have their "
+        "versions pinned with ==. These do not:"
+    )
+
+
+class HashMismatch(HashError):
+    """
+    Distribution file hash values don't match.
+
+    :ivar package_name: The name of the package that triggered the hash
+        mismatch. Feel free to write to this after the exception is raise to
+        improve its error message.
+
+    """
+
+    order = 4
+    head = (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS "
+        "FILE. If you have updated the package versions, please update "
+        "the hashes. Otherwise, examine the package contents carefully; "
+        "someone may have tampered with them."
+    )
+
+    def __init__(self, allowed: dict[str, list[str]], gots: dict[str, _Hash]) -> None:
+        """
+        :param allowed: A dict of algorithm names pointing to lists of allowed
+            hex digests
+        :param gots: A dict of algorithm names pointing to hashes we
+            actually got from the files under suspicion
+        """
+        self.allowed = allowed
+        self.gots = gots
+
+    def body(self) -> str:
+        return f"    {self._requirement_name()}:\n{self._hash_comparison()}"
+
+    def _hash_comparison(self) -> str:
+        """
+        Return a comparison of actual and expected hash values.
+
+        Example::
+
+               Expected sha256 abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde
+                            or 123451234512345123451234512345123451234512345
+                    Got        bcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdefbcdef
+
+        """
+
+        def hash_then_or(hash_name: str) -> chain[str]:
+            # For now, all the decent hashes have 6-char names, so we can get
+            # away with hard-coding space literals.
+            return chain([hash_name], repeat("    or"))
+
+        lines: list[str] = []
+        for hash_name, expecteds in self.allowed.items():
+            prefix = hash_then_or(hash_name)
+            lines.extend((f"        Expected {next(prefix)} {e}") for e in expecteds)
+            lines.append(
+                f"             Got        {self.gots[hash_name].hexdigest()}\n"
+            )
+        return "\n".join(lines)
+
+
+class UnsupportedPythonVersion(InstallationError):
+    """Unsupported python version according to Requires-Python package
+    metadata."""
+
+
+class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
+    """When there are errors while loading a configuration file"""
+
+    def __init__(
+        self,
+        reason: str = "could not be loaded",
+        fname: str | None = None,
+        error: configparser.Error | None = None,
+    ) -> None:
+        super().__init__(error)
+        self.reason = reason
+        self.fname = fname
+        self.error = error
+
+    def __str__(self) -> str:
+        if self.fname is not None:
+            message_part = f" in {self.fname}."
         else:
-            message = "frame "
-            if self.size is not None:
-                message += f"with {self.size} bytes "
-            if self.current_size is not None:
-                message += f"after reading {self.current_size} bytes "
-            message += f"exceeds limit of {self.max_size} bytes"
-            return message
-
-    def set_current_size(self, current_size: int | None) -> None:
-        assert self.current_size is None
-        if current_size is not None:
-            self.max_size += current_size
-            self.current_size = current_size
+            assert self.error is not None
+            message_part = f".\n{self.error}\n"
+        return f"Configuration file {self.reason}{message_part}"
 
 
-class InvalidState(WebSocketException, AssertionError):
-    """
-    Raised when sending a frame is forbidden in the current state.
+_DEFAULT_EXTERNALLY_MANAGED_ERROR = f"""\
+The Python environment under {sys.prefix} is managed externally, and may not be
+manipulated by the user. Please use specific tooling from the distributor of
+the Python installation to interact with this environment instead.
+"""
 
-    Specifically, the Sans-I/O layer raises this exception when:
 
-    * sending a data frame to a connection in a state other
-      :attr:`~websockets.protocol.State.OPEN`;
-    * sending a control frame to a connection in a state other than
-      :attr:`~websockets.protocol.State.OPEN` or
-      :attr:`~websockets.protocol.State.CLOSING`.
+class ExternallyManagedEnvironment(DiagnosticPipError):
+    """The current environment is externally managed.
 
+    This is raised when the current environment is externally managed, as
+    defined by `PEP 668`_. The ``EXTERNALLY-MANAGED`` configuration is checked
+    and displayed when the error is bubbled up to the user.
+
+    :param error: The error message read from ``EXTERNALLY-MANAGED``.
     """
 
+    reference = "externally-managed-environment"
 
-class ConcurrencyError(WebSocketException, RuntimeError):
-    """
-    Raised when receiving or sending messages concurrently.
+    def __init__(self, error: str | None) -> None:
+        if error is None:
+            context = Text(_DEFAULT_EXTERNALLY_MANAGED_ERROR)
+        else:
+            context = Text(error)
+        super().__init__(
+            message="This environment is externally managed",
+            context=context,
+            note_stmt=(
+                "If you believe this is a mistake, please contact your "
+                "Python installation or OS distribution provider. "
+                "You can override this, at the risk of breaking your Python "
+                "installation or OS, by passing --break-system-packages."
+            ),
+            hint_stmt=Text("See PEP 668 for the detailed specification."),
+        )
 
-    WebSocket is a connection-oriented protocol. Reads must be serialized; so
-    must be writes. However, reading and writing concurrently is possible.
+    @staticmethod
+    def _iter_externally_managed_error_keys() -> Iterator[str]:
+        # LC_MESSAGES is in POSIX, but not the C standard. The most common
+        # platform that does not implement this category is Windows, where
+        # using other categories for console message localization is equally
+        # unreliable, so we fall back to the locale-less vendor message. This
+        # can always be re-evaluated when a vendor proposes a new alternative.
+        try:
+            category = locale.LC_MESSAGES
+        except AttributeError:
+            lang: str | None = None
+        else:
+            lang, _ = locale.getlocale(category)
+        if lang is not None:
+            yield f"Error-{lang}"
+            for sep in ("-", "_"):
+                before, found, _ = lang.partition(sep)
+                if not found:
+                    continue
+                yield f"Error-{before}"
+        yield "Error"
 
-    """
+    @classmethod
+    def from_config(
+        cls,
+        config: pathlib.Path | str,
+    ) -> ExternallyManagedEnvironment:
+        parser = configparser.ConfigParser(interpolation=None)
+        try:
+            parser.read(config, encoding="utf-8")
+            section = parser["externally-managed"]
+            for key in cls._iter_externally_managed_error_keys():
+                with contextlib.suppress(KeyError):
+                    return cls(section[key])
+        except KeyError:
+            pass
+        except (OSError, UnicodeDecodeError, configparser.ParsingError):
+            from pip._internal.utils._log import VERBOSE
+
+            exc_info = logger.isEnabledFor(VERBOSE)
+            logger.warning("Failed to read %s", config, exc_info=exc_info)
+        return cls(None)
 
 
-# At the bottom to break import cycles created by type annotations.
-from . import frames, http11  # noqa: E402
+class UninstallMissingRecord(DiagnosticPipError):
+    reference = "uninstall-no-record-file"
+
+    def __init__(self, *, distribution: BaseDistribution) -> None:
+        installer = distribution.installer
+        if not installer or installer == "pip":
+            dep = f"{distribution.raw_name}=={distribution.version}"
+            hint = Text.assemble(
+                "You might be able to recover from this via: ",
+                (f"pip install --ignore-installed --no-deps {dep}", "green"),
+            )
+        else:
+            hint = Text(
+                f"The package was installed by {installer}. "
+                "You should check if it can uninstall the package."
+            )
+
+        super().__init__(
+            message=Text(f"Cannot uninstall {distribution}"),
+            context=(
+                "The package's contents are unknown: "
+                f"no RECORD file was found for {distribution.raw_name}."
+            ),
+            hint_stmt=hint,
+        )
 
 
-lazy_import(
-    globals(),
-    deprecated_aliases={
-        # deprecated in 14.0 - 2024-11-09
-        "AbortHandshake": ".legacy.exceptions",
-        "InvalidStatusCode": ".legacy.exceptions",
-        "RedirectHandshake": ".legacy.exceptions",
-        "WebSocketProtocolError": ".legacy.exceptions",
-    },
-)
+class LegacyDistutilsInstall(DiagnosticPipError):
+    reference = "uninstall-distutils-installed-package"
+
+    def __init__(self, *, distribution: BaseDistribution) -> None:
+        super().__init__(
+            message=Text(f"Cannot uninstall {distribution}"),
+            context=(
+                "It is a distutils installed project and thus we cannot accurately "
+                "determine which files belong to it which would lead to only a partial "
+                "uninstall."
+            ),
+            hint_stmt=None,
+        )
+
+
+class InvalidInstalledPackage(DiagnosticPipError):
+    reference = "invalid-installed-package"
+
+    def __init__(
+        self,
+        *,
+        dist: BaseDistribution,
+        invalid_exc: InvalidRequirement | InvalidVersion,
+    ) -> None:
+        installed_location = dist.installed_location
+
+        if isinstance(invalid_exc, InvalidRequirement):
+            invalid_type = "requirement"
+        else:
+            invalid_type = "version"
+
+        super().__init__(
+            message=Text(
+                f"Cannot process installed package {dist} "
+                + (f"in {installed_location!r} " if installed_location else "")
+                + f"because it has an invalid {invalid_type}:\n{invalid_exc.args[0]}"
+            ),
+            context=(
+                "Starting with pip 24.1, packages with invalid "
+                f"{invalid_type}s can not be processed."
+            ),
+            hint_stmt="To proceed this package must be uninstalled.",
+        )
+
+
+class IncompleteDownloadError(DiagnosticPipError):
+    """Raised when the downloader receives fewer bytes than advertised
+    in the Content-Length header."""
+
+    reference = "incomplete-download"
+
+    def __init__(self, download: _FileDownload) -> None:
+        # Dodge circular import.
+        from pip._internal.utils.misc import format_size
+
+        assert download.size is not None
+        download_status = (
+            f"{format_size(download.bytes_received)}/{format_size(download.size)}"
+        )
+        if download.reattempts:
+            retry_status = f"after {download.reattempts + 1} attempts "
+            hint = "Use --resume-retries to configure resume attempt limit."
+        else:
+            # Download retrying is not enabled.
+            retry_status = ""
+            hint = "Consider using --resume-retries to enable download resumption."
+        message = Text(
+            f"Download failed {retry_status}because not enough bytes "
+            f"were received ({download_status})"
+        )
+
+        super().__init__(
+            message=message,
+            context=f"URL: {download.link.redacted_url}",
+            hint_stmt=hint,
+            note_stmt="This is an issue with network connectivity, not pip.",
+        )
+
+
+class ResolutionTooDeepError(DiagnosticPipError):
+    """Raised when the dependency resolver exceeds the maximum recursion depth."""
+
+    reference = "resolution-too-deep"
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="Dependency resolution exceeded maximum depth",
+            context=(
+                "Pip cannot resolve the current dependencies as the dependency graph "
+                "is too complex for pip to solve efficiently."
+            ),
+            hint_stmt=(
+                "Try adding lower bounds to constrain your dependencies, "
+                "for example: 'package>=2.0.0' instead of just 'package'. "
+            ),
+            link="https://pip.pypa.io/en/stable/topics/dependency-resolution/#handling-resolution-too-deep-errors",
+        )
+
+
+class InstallWheelBuildError(DiagnosticPipError):
+    reference = "failed-wheel-build-for-install"
+
+    def __init__(self, failed: list[InstallRequirement]) -> None:
+        super().__init__(
+            message=(
+                "Failed to build installable wheels for some "
+                "pyproject.toml based projects"
+            ),
+            context=", ".join(r.name for r in failed),  # type: ignore
+            hint_stmt=None,
+        )
+
+
+class InvalidEggFragment(DiagnosticPipError):
+    reference = "invalid-egg-fragment"
+
+    def __init__(self, link: Link, fragment: str) -> None:
+        hint = ""
+        if ">" in fragment or "=" in fragment or "<" in fragment:
+            hint = (
+                "Version specifiers are silently ignored for URL references. "
+                "Remove them. "
+            )
+        if "[" in fragment and "]" in fragment:
+            hint += "Try using the Direct URL requirement syntax: 'name[extra] @ URL'"
+
+        if not hint:
+            hint = "Egg fragments can only be a valid project name."
+
+        super().__init__(
+            message=f"The '{escape(fragment)}' egg fragment is invalid",
+            context=f"from '{escape(str(link))}'",
+            hint_stmt=escape(hint),
+        )
+
+
+class BuildDependencyInstallError(DiagnosticPipError):
+    """Raised when build dependencies cannot be installed."""
+
+    reference = "failed-build-dependency-install"
+
+    def __init__(
+        self,
+        req: InstallRequirement | None,
+        build_reqs: Iterable[str],
+        *,
+        cause: Exception,
+        log_lines: list[str] | None,
+    ) -> None:
+        if isinstance(cause, PipError):
+            note = "This is likely not a problem with pip."
+        else:
+            note = (
+                "pip crashed unexpectedly. Please file an issue on pip's issue "
+                "tracker: https://github.com/pypa/pip/issues/new"
+            )
+
+        if log_lines is None:
+            # No logs are available, they must have been printed earlier.
+            context = Text("See above for more details.")
+        else:
+            if isinstance(cause, PipError):
+                log_lines.append(f"ERROR: {cause}")
+            else:
+                # Split rendered error into real lines without trailing newlines.
+                log_lines.extend(
+                    "".join(traceback.format_exception(cause)).splitlines()
+                )
+
+            context = Text.assemble(
+                f"Installing {' '.join(build_reqs)}\n",
+                (f"[{len(log_lines)} lines of output]\n", "red"),
+                "\n".join(log_lines),
+                ("\n[end of output]", "red"),
+            )
+
+        message = Text("Cannot install build dependencies", "green")
+        if req:
+            message += Text(f" for {req}")
+        super().__init__(
+            message=message, context=context, hint_stmt=None, note_stmt=note
+        )
