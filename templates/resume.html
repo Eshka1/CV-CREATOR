@@ -1,93 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>{{ profile.personal.name }} — Resume</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root { --ink:#1c1f26; --paper:#fafaf9; --accent:#7a2635; --gold:#b08d57; --rule:#d9d6d1; }
-  * { box-sizing: border-box; }
-  body { background: var(--paper); color: var(--ink); font-family:'Inter',system-ui,sans-serif; margin:0; padding:48px 20px; line-height:1.55; }
-  .sheet { max-width:720px; margin:0 auto; background:#fff; padding:56px 64px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-  h1.name { font-family:'Source Serif 4',serif; font-size:2.4rem; font-weight:700; margin:0 0 4px; }
-  .contact { font-size:0.9rem; color:#555; margin-bottom:24px; }
-  .contact span:not(:last-child)::after { content:" · "; color:var(--rule); }
-  .summary { font-size:1.02rem; border-left:3px solid var(--accent); padding-left:16px; margin:24px 0 36px; color:#2a2a2a; }
-  .target-tag { display:inline-block; font-size:0.75rem; letter-spacing:0.05em; text-transform:uppercase; color:var(--gold); margin-bottom:8px; }
-  h2.section { font-family:'Source Serif 4',serif; font-size:1.05rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--accent); border-bottom:1px solid var(--rule); padding-bottom:6px; margin:32px 0 16px; }
-  .timeline { position:relative; padding-left:20px; }
-  .timeline::before { content:""; position:absolute; left:4px; top:6px; bottom:6px; width:1px; background:var(--rule); }
-  .entry { position:relative; margin-bottom:20px; }
-  .entry::before { content:""; position:absolute; left:-20px; top:5px; width:8px; height:8px; border-radius:50%; background:var(--accent); }
-  .entry-title { font-weight:600; font-size:1rem; }
-  .entry-meta { font-size:0.85rem; color:#666; margin-bottom:4px; }
-  .entry-desc { font-size:0.92rem; color:#333; }
-  .pill-list { display:flex; flex-wrap:wrap; gap:8px; }
-  .pill { font-size:0.8rem; background:#f1efe9; border:1px solid var(--rule); padding:4px 10px; border-radius:3px; }
-  .print-btn { max-width:720px; margin:0 auto 24px; text-align:right; }
-  .print-btn button { background:var(--accent); color:#fff; border:none; padding:10px 18px; font-size:0.85rem; cursor:pointer; border-radius:3px; }
-  .print-btn button:hover { background:#611e29; }
-  @media print { .print-btn { display:none; } body { padding:0; background:#fff; } .sheet { box-shadow:none; padding:0; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadyGrad — CV Creator Dashboard</title>
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #030408;
+            --surface-color: rgba(255, 255, 255, 0.02);
+            --surface-border: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: #9ea4b3;
+            --accent-cyan: #00f2fe;
+            --accent-purple: #7f00ff;
+            --accent-pink: #ff007f;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+            padding-top: 100px;
+            padding-bottom: 60px;
+        }
+
+        /* Subtle glowing background lights and grid */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .glowing-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(127, 0, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        /* Unified Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: rgba(3, 4, 8, 0.7);
+            border-bottom: 1px solid var(--surface-border);
+            z-index: 100;
+            padding: 18px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--accent-cyan);
+        }
+
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            position: relative;
+            padding: 6px 0;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 2px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-logout-btn {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .user-logout-btn:hover {
+            color: var(--accent-pink);
+        }
+
+        /* Container & Layout */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: sticky;
+            top: 100px;
+        }
+
+        .page-header {
+            grid-column: span 2;
+            margin-bottom: 10px;
+        }
+
+        /* Notification Banners */
+        .alert {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            grid-column: span 2;
+        }
+
+        .alert-error {
+            background: rgba(255, 95, 86, 0.1);
+            border: 1px solid #ff5f56;
+            color: #ff8e89;
+        }
+
+        .alert-success {
+            background: rgba(39, 201, 63, 0.1);
+            border: 1px solid #27c93f;
+            color: #7eed8e;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Form Inputs */
+        .form-group {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 10px 12px;
+            font-size: 13.5px;
+            outline: none;
+            font-family: var(--font-body);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .form-textarea {
+            resize: vertical;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+            font-family: var(--font-body);
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.15);
+        }
+
+        .btn-generate:hover {
+            opacity: 0.9;
+        }
+
+        /* CV list grid */
+        .cv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .cv-card {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid var(--surface-border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .cv-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .cv-info {
+            margin-bottom: 20px;
+        }
+
+        .cv-job {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .cv-company {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .cv-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid rgba(0, 242, 254, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .cv-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-action-view {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--surface-border);
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .btn-action-view:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .btn-action-delete {
+            background: transparent;
+            border: 1px solid rgba(255, 95, 86, 0.2);
+            color: #ff5f56;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-action-delete:hover {
+            background: rgba(255, 95, 86, 0.1);
+            border-color: #ff5f56;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            border: 1.5px dashed var(--surface-border);
+            border-radius: 16px;
+        }
+    </style>
 </head>
 <body>
-  <div class="print-btn"><button onclick="window.print()">Download as PDF</button></div>
-  <div class="sheet">
-    {% if target %}<div class="target-tag">Tailored for {{ target }}</div>{% endif %}
-    <h1 class="name">{{ profile.personal.name or "Your Name" }}</h1>
-    <div class="contact">
-      {% if profile.personal.email %}<span>{{ profile.personal.email }}</span>{% endif %}
-      {% if profile.personal.location %}<span>{{ profile.personal.location }}</span>{% endif %}
+
+    <div class="glowing-bg">
+        <div class="glow-orb-1"></div>
     </div>
-    <p class="summary">{{ summary }}</p>
 
-    {% if profile.experience %}
-    <h2 class="section">Experience</h2>
-    <div class="timeline">
-      {% for job in profile.experience %}
-      <div class="entry">
-        <div class="entry-title">{{ job.role }} — {{ job.company }}</div>
-        <div class="entry-meta">{{ job.duration }}</div>
-        <div class="entry-desc">{{ job.description }}</div>
-      </div>
-      {% endfor %}
+    <header>
+        <a href="/" class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 8l10-5 10 5-10 5L2 8z"/>
+                <path d="M6 10v5c0 2 2 4 6 4s6-2 6-4v-5"/>
+            </svg>
+            <div class="logo-text-group">
+                <span class="logo-title">ReadyGrad</span>
+                <span class="logo-subtitle">AI Career Platform</span>
+            </div>
+        </a>
+        <nav class="nav-links">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/build-profile" class="nav-link">Profile Section</a>
+            <a href="/jobs" class="nav-link">Job Section</a>
+            <a href="/resume" class="nav-link active">CV Creator</a>
+            <a href="/portfolio" class="nav-link">Portfolio Website</a>
+        </nav>
+        <div class="user-menu">
+            <div class="user-avatar" title="{{ user.name }}">{{ user.name[0]|upper if user.name else 'U' }}</div>
+            <a href="/logout" class="user-logout-btn">Log Out</a>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <!-- Alerts -->
+        {% if error %}
+        <div class="alert alert-error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <div class="alert alert-success">
+            <strong>Success:</strong> {{ success }}
+        </div>
+        {% endif %}
+
+        <div class="page-header">
+            <h1 style="font-family: var(--font-display); font-size: 32px; font-weight: 800; margin-bottom: 6px;">AI CV Creator</h1>
+            <p style="color: var(--text-secondary); font-size: 15px;">Tailor premium, A4 print-ready layouts matching real openings or generate custom designs.</p>
+        </div>
+
+        <!-- Left panel: List of saved CVs -->
+        <div class="left-panel">
+            <div class="card" style="width: 100%;">
+                <div class="card-title">📁 My Tailored CVs</div>
+                
+                <div class="cv-grid">
+                    {% if cvs %}
+                        {% for cv in cvs %}
+                        <div class="cv-card">
+                            <div class="cv-info">
+                                <div class="cv-job">{{ cv.job_title }}</div>
+                                <div class="cv-company">{{ cv.company or 'Custom Simulation' }}</div>
+                                <div style="display:flex; gap:6px; margin-top:8px; align-items:center;">
+                                    <span class="cv-badge">{{ cv.template_id.replace('_', ' ') }}</span>
+                                    <span style="font-size:11px; color:var(--text-secondary);">• {{ cv.created_at }}</span>
+                                </div>
+                            </div>
+                            <div class="cv-actions">
+                                <a href="/resume/view/{{ cv.id }}" class="btn-action-view">View & Download</a>
+                                <a href="/resume/delete/{{ cv.id }}" class="btn-action-delete" onclick="return confirm('If you delete this CV, it will be deleted from the company also, so the job provider won\'t get the CV. Are you sure you want to proceed?')">Delete</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <span style="font-size:32px; display:block; margin-bottom:12px;">📁</span>
+                            <p style="font-size:14px; font-weight:500; margin-bottom:4px;">No CVs Created Yet</p>
+                            <p style="font-size:12px; opacity:0.8;">CVs generated during job applications or custom creations will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right panel: Create custom CV form -->
+        <div class="right-panel">
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 12px;">🛠️ Create Custom CV</div>
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+                    Enter any external job title & requirements to write a tailored CV matching your profile.
+                </p>
+
+                <form action="/resume/create-custom" method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Job Title</label>
+                        <input type="text" class="form-input" name="job_title" placeholder="e.g. Frontend Engineer" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Company Name</label>
+                        <input type="text" class="form-input" name="company" placeholder="e.g. Google" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Job Description / Requirements</label>
+                        <textarea class="form-textarea" name="job_description" rows="4" placeholder="Paste key responsibilities or requirements here..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Template Design Style</label>
+                        <select class="form-select" name="template_id">
+                            <option value="random">Random Design Style</option>
+                            <option value="dark_diagonal_sidebar">Jenna Melinda (Charcoal/Orange)</option>
+                            <option value="warm_geometric_split">Connor Hamilton (Brown Accent/Creative)</option>
+                            <option value="arch_photo_two_tone">Jonathan Patterson (Arched Header/Classic)</option>
+                            <option value="navy_gold_sidebar">Lorna Alvarado (Navy/Gold/Marketing)</option>
+                            <option value="sage_photo_block">Catrine Ziv (Sage/Full Photo)</option>
+                            <option value="sage_photo_topbar">Emma Williams (Sage Sidebar/Design)</option>
+                            <option value="dark_split_soft_shapes">Morgan Maxwell (Dark Green/Design)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-generate">
+                        Generate CV
+                    </button>
+                </form>
+            </div>
+        </div>
+
     </div>
-    {% endif %}
 
-    {% if profile.projects %}
-    <h2 class="section">Projects</h2>
-    <div class="timeline">
-      {% for p in profile.projects %}
-      <div class="entry">
-        <div class="entry-title">{{ p.title }}</div>
-        <div class="entry-desc">{{ p.description }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if profile.education %}
-    <h2 class="section">Education</h2>
-    <div class="timeline">
-      {% for e in profile.education %}
-      <div class="entry">
-        <div class="entry-title">{{ e.degree }}, {{ e.school }}</div>
-        <div class="entry-meta">{{ e.year }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if profile.skills %}
-    <h2 class="section">Skills</h2>
-    <div class="pill-list">{% for s in profile.skills %}<span class="pill">{{ s }}</span>{% endfor %}</div>
-    {% endif %}
-
-    {% if profile.certificates %}
-    <h2 class="section">Certificates</h2>
-    <div class="pill-list">{% for c in profile.certificates %}<span class="pill">{{ c }}</span>{% endfor %}</div>
-    {% endif %}
-  </div>
 </body>
 </html>

@@ -20,7 +20,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            email TEXT,
+            email TEXT UNIQUE,
             location TEXT,
             education TEXT,      -- stored as JSON text
             experience TEXT,     -- stored as JSON text
@@ -48,23 +48,25 @@ def init_db():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS saved_jobs (
-            user_profile_id INTEGER,
+            user_email TEXT,
             job_id INTEGER,
             saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_profile_id, job_id)
+            PRIMARY KEY (user_email, job_id)
         )
     """)
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS applications (
-            job_id INTEGER PRIMARY KEY,
+            user_email TEXT,
+            job_id INTEGER,
             job_title TEXT,
             company TEXT,
             status TEXT,
             applied_at TEXT,
             readiness_score INTEGER,
             cover_letter TEXT,
-            email TEXT
+            email TEXT,
+            PRIMARY KEY (user_email, job_id)
         )
     """)
 
@@ -81,6 +83,10 @@ def save_profile_db(profile):
     cur.execute("""
         INSERT INTO profiles (name, email, location, education, experience, skills, projects, certificates)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(email) DO UPDATE SET
+            name=excluded.name, location=excluded.location, education=excluded.education,
+            experience=excluded.experience, skills=excluded.skills, projects=excluded.projects,
+            certificates=excluded.certificates
     """, (
         personal.get("name", ""),
         personal.get("email", ""),
@@ -95,10 +101,13 @@ def save_profile_db(profile):
     conn.close()
 
 
-def load_latest_profile_db():
+def load_latest_profile_db(email=None):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM profiles ORDER BY id DESC LIMIT 1")
+    if email:
+        cur.execute("SELECT * FROM profiles WHERE email = ? ORDER BY id DESC LIMIT 1", (email,))
+    else:
+        cur.execute("SELECT * FROM profiles ORDER BY id DESC LIMIT 1")
     row = cur.fetchone()
     conn.close()
     if not row:
@@ -165,29 +174,35 @@ def dict_from_job_row(row):
 
 # ---------- SAVED JOBS (replace saved_jobs.json) ----------
 
-def load_saved_job_ids_db():
+def load_saved_job_ids_db(user_email=None):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT job_id FROM saved_jobs")
+    if user_email:
+        cur.execute("SELECT job_id FROM saved_jobs WHERE user_email = ?", (user_email,))
+    else:
+        cur.execute("SELECT job_id FROM saved_jobs")
     ids = [r["job_id"] for r in cur.fetchall()]
     conn.close()
     return ids
 
 
-def save_job_id_db(job_id):
+def save_job_id_db(user_email, job_id):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("INSERT OR IGNORE INTO saved_jobs (user_profile_id, job_id) VALUES (1, ?)", (job_id,))
+    cur.execute("INSERT OR IGNORE INTO saved_jobs (user_email, job_id) VALUES (?, ?)", (user_email, job_id))
     conn.commit()
     conn.close()
 
 
 # ---------- APPLICATIONS (replace applications.json) ----------
 
-def load_applications_db():
+def load_applications_db(user_email=None):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM applications")
+    if user_email:
+        cur.execute("SELECT * FROM applications WHERE user_email = ?", (user_email,))
+    else:
+        cur.execute("SELECT * FROM applications")
     rows = cur.fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -197,13 +212,13 @@ def save_application_db(app_record):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO applications (job_id, job_title, company, status, applied_at, readiness_score, cover_letter, email)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(job_id) DO UPDATE SET
+        INSERT INTO applications (user_email, job_id, job_title, company, status, applied_at, readiness_score, cover_letter, email)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_email, job_id) DO UPDATE SET
             status=excluded.status, applied_at=excluded.applied_at,
             readiness_score=excluded.readiness_score, cover_letter=excluded.cover_letter, email=excluded.email
     """, (
-        app_record["job_id"], app_record["job_title"], app_record["company"],
+        app_record.get("user_email", ""), app_record["job_id"], app_record["job_title"], app_record["company"],
         app_record["status"], app_record["applied_at"], app_record["readiness_score"],
         app_record["cover_letter"], app_record["email"],
     ))
