@@ -457,5 +457,40 @@
     ],
     "projects": [],
     "certificates": []
+  },
+  {
+    "personal": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "location": "Dhaka"
+    },
+    "education": [
+      {
+        "school": "Test University",
+        "degree": "",
+        "year": ""
+      }
+    ],
+    "experience": [
+      {
+        "role": "Test Intern",
+        "company": "",
+        "duration": "",
+        "description": ""
+      }
+    ],
+    "skills": [
+      "Python",
+      "SQL"
+    ],
+    "projects": [
+      {
+        "title": "Test Project",
+        "description": ""
+      }
+    ],
+    "certificates": [
+      "Test Cert"
+    ]
   }
 ]

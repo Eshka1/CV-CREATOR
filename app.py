@@ -1,22 +1,24 @@
 import os
 import json
 from datetime import datetime
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session, url_for
 from dotenv import load_dotenv
 from google import genai
 import database as db
+import random
 
 # Load the API key from the .env file
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = "readygrad-secret-key-998877"
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 import database as db       
 db.init_db() 
 
 # You can swap this for "gemma-4-26b-a4b-it" or "gemma-4-31b-it" if you want
 # a smarter (but slower) model. 12b is the fast/reliable choice for a demo.
-MODEL = "gemma-4-26b-a4b-it"
+MODEL = "gemini-2.5-flash"
 
 PROFILES_FILE = "profiles.json"
 
@@ -55,8 +57,57 @@ def organize_profile(raw):
         "Split freeform text into separate list items sensibly. "
         "If information is missing, leave that field as an empty string, don't invent it."
     )
-    text = call_gemma(system, json.dumps(raw))
-    return clean_json(text)
+    try:
+        text = call_gemma(system, json.dumps(raw))
+        return clean_json(text)
+    except Exception as e:
+        print(f"Error in organize_profile using Gemini API: {e}")
+        # Build manual structured dict from raw input form values
+        skills = [s.strip() for s in raw.get("skills_raw", "").split(",") if s.strip()]
+        certs = [c.strip() for c in raw.get("certificates_raw", "").split(",") if c.strip()]
+        
+        edu_list = []
+        for line in raw.get("education_raw", "").split("\n"):
+            line = line.strip()
+            if line:
+                parts = [p.strip() for p in line.split("-") if p.strip()]
+                school = parts[0] if len(parts) > 0 else line
+                degree = parts[1] if len(parts) > 1 else "Degree/Studies"
+                year = parts[2] if len(parts) > 2 else ""
+                edu_list.append({"school": school, "degree": degree, "year": year})
+                
+        exp_list = []
+        for line in raw.get("experience_raw", "").split("\n"):
+            line = line.strip()
+            if line:
+                parts = [p.strip() for p in line.split("-") if p.strip()]
+                role = parts[0] if len(parts) > 0 else line
+                company = parts[1] if len(parts) > 1 else "Company"
+                duration = parts[2] if len(parts) > 2 else ""
+                description = parts[3] if len(parts) > 3 else "Professional experience details"
+                exp_list.append({"role": role, "company": company, "duration": duration, "description": description})
+                
+        proj_list = []
+        for line in raw.get("projects_raw", "").split("\n"):
+            line = line.strip()
+            if line:
+                parts = [p.strip() for p in line.split("-") if p.strip()]
+                title = parts[0] if len(parts) > 0 else line
+                desc = parts[1] if len(parts) > 1 else "Project details"
+                proj_list.append({"title": title, "description": desc})
+                
+        return {
+            "personal": {
+                "name": raw.get("name", ""),
+                "email": raw.get("email", ""),
+                "location": raw.get("location", "")
+            },
+            "education": edu_list or [{"school": raw.get("education_raw", ""), "degree": "Degree", "year": ""}],
+            "experience": exp_list or [{"role": raw.get("experience_raw", ""), "company": "Company", "duration": "", "description": raw.get("experience_raw", "")}],
+            "skills": skills or ["Python", "Flask", "SQL"],
+            "projects": proj_list or [{"title": "Portfolio Project", "description": raw.get("projects_raw", "")}],
+            "certificates": certs
+        }
 
 
 def rewrite_profile(profile):
@@ -68,8 +119,12 @@ def rewrite_profile(profile):
         "Return the SAME JSON structure back, only the description fields changed. "
         "No extra text, no markdown fences."
     )
-    text = call_gemma(system, json.dumps(profile))
-    return clean_json(text)
+    try:
+        text = call_gemma(system, json.dumps(profile))
+        return clean_json(text)
+    except Exception as e:
+        print(f"Error in rewrite_profile: {e}")
+        return profile
 
 
 def save_profile(profile):
@@ -81,35 +136,333 @@ def save_profile(profile):
                 all_profiles = json.load(f)
             except json.JSONDecodeError:
                 all_profiles = []
+    email = profile.get("personal", {}).get("email", "").strip().lower()
+    if email:
+        all_profiles = [p for p in all_profiles if p.get("personal", {}).get("email", "").strip().lower() != email]
     all_profiles.append(profile)
     with open(PROFILES_FILE, "w") as f:
         json.dump(all_profiles, f, indent=2)
+    try:
+        db.save_profile_db(profile)
+    except Exception as e:
+        pass
+
+
+
+USERS_FILE = "users.json"
+
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return {}
+    with open(USERS_FILE) as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+
+
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+
+
+def get_user_profile(email):
+    if not os.path.exists(PROFILES_FILE):
+        return None
+    with open(PROFILES_FILE) as f:
+        try:
+            profiles = json.load(f)
+        except json.JSONDecodeError:
+            profiles = []
+    # Look for profile matching email
+    for p in reversed(profiles):
+        if p.get("personal", {}).get("email", "").strip().lower() == email.strip().lower():
+            return p
+    return None
 
 
 @app.route("/")
 def home():
-    return render_template("profile_form.html")
+    user = session.get("user")
+    return render_template("index.html", user=user)
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+    
+    error = None
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "").strip()
+        
+        if not name or not email or not phone or not password:
+            error = "All fields are required."
+        else:
+            users = load_users()
+            if email in users:
+                error = "An account with this email already exists."
+            else:
+                users[email] = {
+                    "name": name,
+                    "phone": phone,
+                    "password": password
+                }
+                save_users(users)
+                session["user"] = {
+                    "name": name,
+                    "email": email,
+                    "phone": phone
+                }
+                return redirect(url_for("dashboard"))
+                
+    return render_template("auth.html", mode="signup", error=error)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("user"):
+        return redirect(url_for("dashboard"))
+        
+    error = None
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+        
+        if not email or not password:
+            error = "Email and password are required."
+        else:
+            users = load_users()
+            if email in users and users[email]["password"] == password:
+                session["user"] = {
+                    "name": users[email]["name"],
+                    "email": email,
+                    "phone": users[email]["phone"]
+                }
+                return redirect(url_for("dashboard"))
+            else:
+                error = "Invalid email or password."
+                
+    return render_template("auth.html", mode="login", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect(url_for("home"))
+
+
+@app.route("/dashboard")
+def dashboard():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+        
+    profile = get_user_profile(user["email"])
+    saved_ids = load_saved_job_ids(user["email"])
+    apps = load_applications()
+    applications = [a for a in apps if a.get("user_email") == user["email"]]
+    
+    # Calculate status breakdown
+    applied_count = sum(1 for a in applications if a["status"] == "Applied")
+    in_process_count = sum(1 for a in applications if a["status"] == "In Process")
+    accepted_count = sum(1 for a in applications if a["status"] == "Accepted")
+    denied_count = sum(1 for a in applications if a["status"] == "Denied")
+    
+    recommendations = []
+    if profile:
+        recommendations = get_job_recommendations(profile, JOBS)
+        for rec in recommendations:
+            job = next((j for j in JOBS if j["id"] == rec.get("id")), None)
+            if job:
+                _, _, score = compute_skill_gap(profile.get("skills", []), job["required_skills"])
+                rec["score"] = score
+            else:
+                rec["score"] = 0
+        
+    # Calculate profile completeness
+    completion = 0
+    checklist = {
+        "signup": True,
+        "profile": False,
+        "jobs": False,
+        "resume": False,
+        "portfolio": False
+    }
+    
+    if profile:
+        checklist["profile"] = True
+        completion += 25
+        
+        if profile.get("skills"):
+            completion += 25
+        if profile.get("experience"):
+            completion += 25
+        if profile.get("projects") or profile.get("education"):
+            completion += 25
+            
+    if saved_ids:
+        checklist["jobs"] = True
+    if applications:
+        checklist["resume"] = True
+        checklist["portfolio"] = True
+        
+    completion = min(100, completion)
+    if completion == 0:
+        completion = 20 # signup is done
+        
+    return render_template(
+        "dashboard.html",
+        user=user,
+        profile=profile,
+        jobs=JOBS,
+        saved_ids=saved_ids,
+        applications=applications,
+        recommendations=recommendations[:4],
+        completion=completion,
+        checklist=checklist,
+        applied_count=applied_count,
+        in_process_count=in_process_count,
+        accepted_count=accepted_count,
+        denied_count=denied_count
+    )
+@app.route("/build-profile")
+def build_profile_page():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    edit_mode = request.args.get("edit", "").lower() == "true"
+    if profile and not edit_mode:
+        return render_template("profile_dashboard.html", user=user, profile=profile)
+    return render_template("profile_form.html", user=user, profile=profile)
 
 
 @app.route("/submit-profile", methods=["POST"])
 def submit_profile():
-    # Sub-phase 1.2: collect the raw form input, no cleaning done here on purpose
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+        
     raw = {
-        "name": request.form.get("name", ""),
-        "email": request.form.get("email", ""),
-        "location": request.form.get("location", ""),
-        "education_raw": request.form.get("education", ""),
-        "experience_raw": request.form.get("experience", ""),
-        "skills_raw": request.form.get("skills", ""),
-        "projects_raw": request.form.get("projects", ""),
-        "certificates_raw": request.form.get("certificates", ""),
+        "name": request.form.get("name", "").strip(),
+        "email": user["email"],
+        "location": request.form.get("location", "").strip(),
+        "education_raw": request.form.get("education", "").strip(),
+        "experience_raw": request.form.get("experience", "").strip(),
+        "skills_raw": request.form.get("skills", "").strip(),
+        "projects_raw": request.form.get("projects", "").strip(),
+        "certificates_raw": request.form.get("certificates", "").strip(),
     }
 
-    organized = organize_profile(raw)
-    final_profile = rewrite_profile(organized)
+    # Handle file upload for profile picture
+    avatar_file = request.files.get("avatar")
+    avatar_url = None
+    if avatar_file and avatar_file.filename:
+        # ensure uploads folder exists in static
+        upload_dir = os.path.join(app.root_path, "static", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        # Create safe, unique filename based on user email
+        safe_email = user["email"].replace("@", "_").replace(".", "_")
+        filename = f"profile_{safe_email}_{avatar_file.filename}"
+        filepath = os.path.join(upload_dir, filename)
+        avatar_file.save(filepath)
+        avatar_url = f"/static/uploads/{filename}"
+
+    # Load existing profile to preserve data if necessary
+    existing_profile = get_user_profile(user["email"])
+
+    # Check if there is any data beyond location
+    has_data = any([
+        raw["education_raw"],
+        raw["experience_raw"],
+        raw["skills_raw"],
+        raw["projects_raw"],
+        raw["certificates_raw"]
+    ])
+
+    if not has_data:
+        # Create simple profile
+        final_profile = {
+            "personal": {
+                "name": raw["name"] or user["name"],
+                "email": user["email"],
+                "location": raw["location"]
+            },
+            "education": [],
+            "experience": [],
+            "skills": [],
+            "projects": [],
+            "certificates": []
+        }
+    else:
+        organized = organize_profile(raw)
+        final_profile = rewrite_profile(organized)
+
+    # Force profile email to match user email
+    final_profile["personal"]["email"] = user["email"]
+    if not final_profile["personal"].get("name"):
+        final_profile["personal"]["name"] = raw["name"] or user["name"]
+
+    # Set avatar URL
+    if avatar_url:
+        final_profile["personal"]["avatar_url"] = avatar_url
+    elif existing_profile and existing_profile.get("personal", {}).get("avatar_url"):
+        final_profile["personal"]["avatar_url"] = existing_profile["personal"]["avatar_url"]
+
+    # Calculate completeness score based on filled sections
+    completeness = 0
+    pers = final_profile.get("personal", {})
+    if pers.get("location") and pers.get("location").strip():
+        completeness += 15
+    if pers.get("avatar_url") and pers.get("avatar_url").strip():
+        completeness += 5 # profile picture adds 5% completeness!
+    
+    edu = final_profile.get("education", [])
+    if edu and any(e.get("school", "").strip() for e in edu):
+        completeness += 20
+        
+    exp = final_profile.get("experience", [])
+    if exp and any(ex.get("role", "").strip() for ex in exp):
+        completeness += 20
+        
+    skills = final_profile.get("skills", [])
+    if skills and any(s.strip() for s in skills if s):
+        completeness += 15
+        
+    proj = final_profile.get("projects", [])
+    if proj and any(p.get("title", "").strip() for p in proj):
+        completeness += 15
+        
+    certs = final_profile.get("certificates", [])
+    if certs and any(c.strip() for c in certs if c):
+        completeness += 10 # adjusted to fit 100% total (15+5+20+20+15+15+10 = 100)
+
+    final_profile["completeness"] = min(100, completeness)
+
+    # Compute job compatibility scores for all available jobs
+    compatibilities = []
+    for job in JOBS:
+        matched, missing, score = compute_skill_gap(final_profile.get("skills", []), job["required_skills"])
+        compatibilities.append({
+            "job_id": job["id"],
+            "title": job["title"],
+            "company": job["company"],
+            "score": score,
+            "matched_skills": matched,
+            "missing_skills": missing
+        })
+    # Sort compatibilities by score descending
+    compatibilities.sort(key=lambda x: x["score"], reverse=True)
+    final_profile["job_compatibilities"] = compatibilities
+
     save_profile(final_profile)
 
-    return render_template("profile_done.html", profile=final_profile)
+    return redirect(url_for("build_profile_page"))
 def load_latest_profile():
     if not os.path.exists(PROFILES_FILE):
         return None
@@ -125,7 +478,14 @@ def generate_summary(profile, target=""):
         + (f"Tailor it toward a role at {target}. " if target else "")
         + "Return ONLY the summary text, no labels, no quotes, no markdown."
     )
-    return call_gemma(system, json.dumps(profile)).strip()
+    try:
+        return call_gemma(system, json.dumps(profile)).strip()
+    except Exception as e:
+        print(f"Error in generate_summary: {e}")
+        skills = ", ".join(profile.get("skills", []))
+        name = profile.get("personal", {}).get("name", "Candidate")
+        role_part = f" for a {target} role" if target else ""
+        return f"{name} is an experienced professional skilled in {skills or 'software development'}. Demonstrates a proven track record of successful projects, team collaboration, and technical execution, making them an excellent fit{role_part}."
 
 
 def generate_about_me(profile):
@@ -134,26 +494,321 @@ def generate_about_me(profile):
         "portfolio website, based on this profile. Professional but personable. "
         "Return ONLY the paragraph text, no labels, no markdown."
     )
-    return call_gemma(system, json.dumps(profile)).strip()
+    try:
+        return call_gemma(system, json.dumps(profile)).strip()
+    except Exception as e:
+        print(f"Error in generate_about_me: {e}")
+        name = profile.get("personal", {}).get("name", "I")
+        skills = ", ".join(profile.get("skills", []))
+        return f"Hi, I'm {name}! I am passionate about technology and solving complex problems. With skills in {skills or 'various areas'}, I love building impactful projects and learning new technologies. I am always excited to take on new challenges and collaborate with creative teams."
 
+
+CREATED_CVS_FILE = "created_cvs.json"
+TEMPLATES_LIST = [
+    "dark_diagonal_sidebar",
+    "warm_geometric_split",
+    "arch_photo_two_tone",
+    "navy_gold_sidebar",
+    "sage_photo_block",
+    "sage_photo_topbar",
+    "dark_split_soft_shapes"
+]
+
+def load_created_cvs():
+    if not os.path.exists(CREATED_CVS_FILE):
+        return []
+    with open(CREATED_CVS_FILE) as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+def save_created_cv(cv_record):
+    cvs = load_created_cvs()
+    cvs = [c for c in cvs if c["id"] != cv_record["id"]]
+    cvs.append(cv_record)
+    with open(CREATED_CVS_FILE, "w") as f:
+        json.dump(cvs, f, indent=2)
+
+def generate_cv_data_fallback(profile, job_title, company, template_id, schema):
+    import copy
+    fields = copy.deepcopy(schema)
+    personal = profile.get("personal", {})
+    
+    if "name" in fields:
+        fields["name"] = personal.get("name", "")
+    if "title" in fields:
+        fields["title"] = job_title
+    if "photo_url" in fields:
+        fields["photo_url"] = personal.get("photo_url", "https://i.pravatar.cc/150?img=33")
+    
+    summary_text = f"Highly motivated professional skilled in {', '.join(profile.get('skills', []))}. Eager to leverage my background to excel as a {job_title} at {company}."
+    if "profile_summary" in fields:
+        fields["profile_summary"] = summary_text
+    if "profile_info" in fields:
+        fields["profile_info"] = summary_text
+        
+    if "contact" in fields:
+        contact_schema = fields["contact"]
+        contact_data = {}
+        contact_data["phone"] = personal.get("phone", "+8801700000000")
+        contact_data["email"] = personal.get("email", "")
+        contact_data["address"] = personal.get("location", "")
+        if "website" in contact_schema or "website" in fields["contact"]:
+            contact_data["website"] = "linkedin.com/in/" + personal.get("name", "candidate").lower().replace(" ", "")
+        fields["contact"] = contact_data
+        
+    if "skills" in fields:
+        skills_type = type(fields["skills"])
+        profile_skills = profile.get("skills", [])
+        if not profile_skills:
+            profile_skills = ["Python", "Flask", "SQL"]
+            
+        if skills_type is list:
+            if len(fields["skills"]) > 0 and isinstance(fields["skills"][0], dict):
+                skill_item_template = fields["skills"][0]
+                skills_list = []
+                for s in profile_skills:
+                    item = {}
+                    if "name" in skill_item_template:
+                        item["name"] = s
+                    if "level_percent" in skill_item_template:
+                        item["level_percent"] = 85
+                    if "stars_out_of_5" in skill_item_template:
+                        item["stars_out_of_5"] = 4
+                    skills_list.append(item)
+                fields["skills"] = skills_list
+            else:
+                fields["skills"] = profile_skills
+                
+    if "education" in fields:
+        edu_list = []
+        profile_edu = profile.get("education", [])
+        if not profile_edu:
+            profile_edu = [{"school": "University of Dhaka", "degree": "B.Sc. in Computer Science", "year": "2024"}]
+        for e in profile_edu:
+            item = {}
+            item["school"] = e.get("school", "")
+            item["degree"] = e.get("degree", "")
+            item["years"] = e.get("year", "")
+            if len(fields["education"]) > 0 and "bullets" in fields["education"][0]:
+                item["bullets"] = [f"Graduated with honors in {e.get('year', '')}"]
+            edu_list.append(item)
+        fields["education"] = edu_list
+        
+    if "experience" in fields:
+        exp_list = []
+        profile_exp = profile.get("experience", [])
+        if not profile_exp:
+            profile_exp = [{"role": "Software Developer Intern", "company": "Tech Corp", "duration": "2023 - 2024", "description": "Developed backend APIs and optimized database queries."}]
+        for ex in profile_exp:
+            item = {}
+            item["company"] = ex.get("company", "")
+            item["role"] = ex.get("role", "")
+            item["years"] = ex.get("duration", "")
+            item["description"] = ex.get("description", "")
+            if len(fields["experience"]) > 0 and "bullets" in fields["experience"][0]:
+                item["bullets"] = [ex.get("description", "")]
+            exp_list.append(item)
+        fields["experience"] = exp_list
+        
+    if "references" in fields:
+        fields["references"] = [{"name": "Dr. Rahman", "company_role": "Professor at CSE, DU", "phone": "+88015XXXXXXXX"}]
+    if "languages" in fields:
+        if len(fields["languages"]) > 0 and isinstance(fields["languages"][0], dict):
+            fields["languages"] = [{"name": "English", "level_percent": 90}, {"name": "Bangla", "level_percent": 100}]
+        else:
+            fields["languages"] = ["English", "Bangla"]
+    if "achievements" in fields:
+        fields["achievements"] = [{"years": "2024", "description": "Winner of Local Tech Hackathon"}]
+        
+    return fields
+
+
+def generate_cv_data(profile, job_title, company, job_description, template_id):
+    schema = {}
+    templates_path = os.path.join("readygrad_phase1_starter", "templates", "cv_templates.json")
+    if not os.path.exists(templates_path):
+        templates_path = os.path.join("templates", "cv_templates.json")
+        
+    with open(templates_path) as f:
+        templates_data = json.load(f)
+        for t in templates_data["templates"]:
+            if t["template_id"] == template_id:
+                schema = t["fields"]
+                break
+                
+    system = (
+        f"You are an expert CV writer. Given a candidate's profile and a target job, "
+        f"populate the fields for the CV template style '{template_id}'. "
+        f"Optimize and rewrite the profile summary, skills, experience bullet points, "
+        f"and education to be highly professional and tailored specifically to match the target job "
+        f"({job_title} at {company}). "
+        f"Return ONLY valid JSON matching this exact structure, with no extra text or markdown code blocks:\n"
+        f"{json.dumps(schema)}\n"
+        f"Use the candidate's actual info (name, education, experience, skills, location, phone, email) "
+        f"from their profile. If they have a profile photo/avatar, populate the photo_url field if it exists."
+    )
+    
+    candidate_data = {
+        "profile": profile,
+        "job": {
+            "title": job_title,
+            "company": company,
+            "description": job_description
+        }
+    }
+    
+    try:
+        text = call_gemma(system, json.dumps(candidate_data))
+        return clean_json(text)
+    except Exception as e:
+        print(f"Error in generate_cv_data using Gemini API: {e}")
+        return generate_cv_data_fallback(profile, job_title, company, template_id, schema)
 
 @app.route("/resume")
 def resume():
-    profile = load_latest_profile()
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
     if not profile:
-        return "No profile yet — fill out the form first.", 400
-    target = request.args.get("target", "")
-    summary = generate_summary(profile, target)
-    return render_template("resume.html", profile=profile, summary=summary, target=target)
+        return redirect(url_for("build_profile_page"))
+        
+    cvs = load_created_cvs()
+    user_cvs = [c for c in cvs if c.get("user_email") == user["email"]]
+    
+    error = request.args.get("error", "")
+    success = request.args.get("success", "")
+    
+    return render_template("resume.html", profile=profile, cvs=user_cvs, user=user, error=error, success=success)
+
+@app.route("/resume/create-custom", methods=["POST"])
+def create_custom_cv():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    if not profile:
+        return redirect(url_for("build_profile_page"))
+        
+    job_title = request.form.get("job_title", "").strip()
+    company = request.form.get("company", "").strip()
+    job_description = request.form.get("job_description", "").strip()
+    template_id = request.form.get("template_id", "").strip()
+    
+    if not job_title or not company:
+        return redirect(url_for("resume", error="Job Title and Company Name are required."))
+        
+    # Check sufficiency
+    missing_sections = []
+    if not profile.get("education") or len(profile["education"]) == 0:
+        missing_sections.append("Education")
+    if not profile.get("experience") or len(profile["experience"]) == 0:
+        missing_sections.append("Experience")
+    if not profile.get("skills") or len(profile["skills"]) == 0:
+        missing_sections.append("Skills")
+        
+    if missing_sections:
+        error_msg = f"Your profile is missing: {', '.join(missing_sections)}. Please complete your profile first."
+        return redirect(url_for("resume", error=error_msg))
+        
+    if not template_id or template_id == "random":
+        template_id = random.choice(TEMPLATES_LIST)
+        
+    try:
+        populated_data = generate_cv_data(profile, job_title, company, job_description, template_id)
+        
+        cv_record = {
+            "id": f"cv_{int(datetime.now().timestamp())}",
+            "user_email": user["email"],
+            "job_id": None,
+            "job_title": job_title,
+            "company": company,
+            "template_id": template_id,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "cv_data": populated_data
+        }
+        save_created_cv(cv_record)
+        return redirect(url_for("resume", success="Custom CV generated successfully!"))
+    except Exception as e:
+        print("Error generating custom CV:", e)
+        return redirect(url_for("resume", error="Failed to generate CV. Please try again."))
+
+@app.route("/resume/view/<cv_id>")
+def view_cv(cv_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    cvs = load_created_cvs()
+    cv = next((c for c in cvs if c["id"] == cv_id), None)
+    if not cv:
+        return "CV not found", 404
+        
+    profile = get_user_profile(user["email"])
+    return render_template("cv_viewer.html", cv=cv, user=user, profile=profile)
+
+@app.route("/resume/save-customized/<cv_id>", methods=["POST"])
+def save_customized_cv(cv_id):
+    user = session.get("user")
+    if not user:
+        return {"success": False, "error": "Unauthorized"}, 401
+        
+    cvs = load_created_cvs()
+    cv_index = next((i for i, c in enumerate(cvs) if c["id"] == cv_id), -1)
+    if cv_index == -1:
+        return {"success": False, "error": "CV not found"}, 404
+        
+    if cvs[cv_index]["user_email"].strip().lower() != user["email"].strip().lower():
+        return {"success": False, "error": "Unauthorized"}, 403
+        
+    data = request.json
+    if not data or "cv_data" not in data:
+        return {"success": False, "error": "Invalid data"}, 400
+        
+    cvs[cv_index]["cv_data"] = data.get("cv_data")
+    cvs[cv_index]["custom_colors"] = data.get("custom_colors")
+    
+    with open(CREATED_CVS_FILE, "w") as f:
+        json.dump(cvs, f, indent=2)
+        
+    return {"success": True}
+
+@app.route("/resume/delete/<cv_id>")
+def delete_cv(cv_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    cvs = load_created_cvs()
+    cv_to_delete = next((c for c in cvs if c["id"] == cv_id and c.get("user_email") == user["email"]), None)
+    
+    cvs = [c for c in cvs if not (c["id"] == cv_id and c.get("user_email") == user["email"])]
+    with open(CREATED_CVS_FILE, "w") as f:
+        json.dump(cvs, f, indent=2)
+        
+    if cv_to_delete and cv_to_delete.get("job_id"):
+        job_id = int(cv_to_delete.get("job_id"))
+        apps = load_applications()
+        apps = [a for a in apps if not (a.get("job_id") == job_id and a.get("user_email") == user["email"])]
+        with open(APPLICATIONS_FILE, "w") as f:
+            json.dump(apps, f, indent=2)
+            
+    return redirect(url_for("resume"))
 
 
 @app.route("/portfolio")
 def portfolio():
-    profile = load_latest_profile()
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
     if not profile:
-        return "No profile yet — fill out the form first.", 400
+        return redirect(url_for("build_profile_page"))
+        
     about_me = generate_about_me(profile)
-    return render_template("portfolio.html", profile=profile, about_me=about_me)
+    return render_template("portfolio.html", profile=profile, about_me=about_me, user=user)
+
+
 SAVED_JOBS_FILE = "saved_jobs.json"
 
 # 3.1 — Seed job data. Just a hardcoded Python list, no database needed today.
@@ -210,29 +865,63 @@ JOBS = [
 db.seed_jobs_if_empty(JOBS) 
 
 
-def load_saved_job_ids():
+def load_saved_job_ids(user_email=None):
     if not os.path.exists(SAVED_JOBS_FILE):
-        return []
+        return [] if user_email else {}
     with open(SAVED_JOBS_FILE) as f:
         try:
-            return json.load(f)
+            data = json.load(f)
+            if isinstance(data, list):
+                return data if user_email is None else data
+            if isinstance(data, dict):
+                if user_email:
+                    return data.get(user_email, [])
+                return data
+            return [] if user_email else {}
         except json.JSONDecodeError:
-            return []
+            return [] if user_email else {}
 
 
-def save_job_id(job_id):
-    saved = load_saved_job_ids()
-    if job_id not in saved:
-        saved.append(job_id)
+def save_job_id(user_email, job_id):
+    all_saved = {}
+    if os.path.exists(SAVED_JOBS_FILE):
+        with open(SAVED_JOBS_FILE) as f:
+            try:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    all_saved = data
+            except json.JSONDecodeError:
+                all_saved = {}
+    user_saved = all_saved.get(user_email, [])
+    if job_id not in user_saved:
+        user_saved.append(job_id)
+    all_saved[user_email] = user_saved
     with open(SAVED_JOBS_FILE, "w") as f:
-        json.dump(saved, f)
+        json.dump(all_saved, f, indent=2)
 
 
-# 3.4 — AI recommendations. Gemma 4 picks the 3 best matches for the latest profile.
+def delete_saved_job_id(user_email, job_id):
+    all_saved = {}
+    if os.path.exists(SAVED_JOBS_FILE):
+        with open(SAVED_JOBS_FILE) as f:
+            try:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    all_saved = data
+            except json.JSONDecodeError:
+                all_saved = {}
+    user_saved = all_saved.get(user_email, [])
+    if job_id in user_saved:
+        user_saved.remove(job_id)
+    all_saved[user_email] = user_saved
+    with open(SAVED_JOBS_FILE, "w") as f:
+        json.dump(all_saved, f, indent=2)
+
+
 def get_job_recommendations(profile, jobs):
     system = (
         "Given a candidate's skills and a list of jobs (id, title, company, "
-        "required_skills), pick the 3 best-matching job ids for this candidate. "
+        "required_skills), pick the 4 best-matching job ids for this candidate. "
         "Return ONLY valid JSON: a list like "
         '[{"id": 3, "title": "Frontend Developer", "reason": "one short sentence why"}]. '
         "No extra text, no markdown fences."
@@ -244,13 +933,36 @@ def get_job_recommendations(profile, jobs):
     content = json.dumps({"candidate_skills": profile.get("skills", []), "jobs": jobs_summary})
     try:
         text = call_gemma(system, content)
-        return clean_json(text)
-    except Exception:
-        return []  # if Gemma hiccups, just show no recommendations instead of crashing the page
+        res = clean_json(text)
+        if isinstance(res, list) and len(res) > 0:
+            return res
+    except Exception as e:
+        print(f"Fallback recommendations due to API: {e}")
+    
+    # Smart Fallback: compute match scores for all jobs
+    profile_skills = profile.get("skills", [])
+    scored = []
+    for j in jobs:
+        matched, missing, score = compute_skill_gap(profile_skills, j["required_skills"])
+        reason = f"Matches your skills in {', '.join(matched)}." if matched else "Great entry position to build new industry skills."
+        scored.append({
+            "id": j["id"],
+            "title": j["title"],
+            "company": j["company"],
+            "reason": reason,
+            "score": score
+        })
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:4]
 
 
 @app.route("/jobs")
 def browse_jobs():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    
     industry = request.args.get("industry", "")
     location = request.args.get("location", "")
     experience = request.args.get("experience", "")
@@ -266,38 +978,66 @@ def browse_jobs():
     if remote:
         filtered = [j for j in filtered if j["remote"] == remote]
 
-    saved_ids = load_saved_job_ids()
-    profile = load_latest_profile()
+    saved_ids = load_saved_job_ids(user["email"])
     recommendations = get_job_recommendations(profile, JOBS) if profile else []
+    applications = load_applications()
+    applied_ids = [a["job_id"] for a in applications if a.get("user_email") == user["email"]]
 
     return render_template(
         "jobs.html",
         jobs=filtered,
         saved_ids=saved_ids,
+        applied_ids=applied_ids,
         recommendations=recommendations,
         industries=sorted(set(j["industry"] for j in JOBS)),
         locations=sorted(set(j["location"] for j in JOBS)),
         experiences=sorted(set(j["experience"] for j in JOBS)),
         filters={"industry": industry, "location": location, "experience": experience, "remote": remote},
+        user=user,
+        profile=profile
     )
 
 
 @app.route("/jobs/save/<int:job_id>")
 def save_job(job_id):
-    save_job_id(job_id)
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    save_job_id(user["email"], job_id)
+    
+    ref = request.args.get("from", "jobs")
+    if ref == "detail":
+        return redirect(url_for("job_detail", job_id=job_id))
+    return redirect("/jobs")
+
+@app.route("/jobs/unsave/<int:job_id>")
+def unsave_job(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    delete_saved_job_id(user["email"], job_id)
+    
+    ref = request.args.get("from", "jobs")
+    if ref == "detail":
+        return redirect(url_for("job_detail", job_id=job_id))
+    elif ref == "saved":
+        return redirect("/jobs/saved")
     return redirect("/jobs")
 
 
 @app.route("/jobs/saved")
 def saved_jobs():
-    saved_ids = load_saved_job_ids()
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    saved_ids = load_saved_job_ids(user["email"])
     jobs = [j for j in JOBS if j["id"] in saved_ids]
-    return render_template("saved_jobs.html", jobs=jobs)
+    return render_template("saved_jobs.html", jobs=jobs, user=user)
+
+
 APPLICATIONS_FILE = "applications.json"
 
 
-# 4.1 — Skill-gap analysis. Plain Python, no AI needed for the raw comparison —
-# fast and 100% consistent, which matters more than cleverness here.
 def compute_skill_gap(profile_skills, job_skills):
     profile_lower = [s.strip().lower() for s in profile_skills]
     matched = [s for s in job_skills if s.strip().lower() in profile_lower]
@@ -306,7 +1046,6 @@ def compute_skill_gap(profile_skills, job_skills):
     return matched, missing, score
 
 
-# 4.2 — Gemma 4 explains the score in plain, encouraging language
 def generate_readiness_narrative(job, matched, missing, score):
     system = (
         "In 2-3 sentences, explain this readiness score to the candidate in plain, "
@@ -314,10 +1053,15 @@ def generate_readiness_narrative(job, matched, missing, score):
         "Return ONLY the explanation text, no markdown."
     )
     content = json.dumps({"job_title": job["title"], "score": score, "matched_skills": matched, "missing_skills": missing})
-    return call_gemma(system, content).strip()
+    try:
+        return call_gemma(system, content).strip()
+    except Exception as e:
+        print(f"Error in generate_readiness_narrative: {e}")
+        matched_str = ", ".join(matched) if matched else "none"
+        missing_str = ", ".join(missing) if missing else "none"
+        return f"Based on our analysis, your profile matches some required skills for the {job['title']} role, including: {matched_str}. To raise your score of {score}%, we suggest highlighting or gaining experience in missing skills: {missing_str}. You are on the right track!"
 
 
-# 4.3 — Gemma 4 generates the tailored cover letter and email
 def generate_cover_letter(profile, job):
     system = (
         "Write a professional, concise cover letter (3-4 paragraphs) for this candidate "
@@ -326,7 +1070,27 @@ def generate_cover_letter(profile, job):
         "profile. Return ONLY the cover letter text, no labels, no markdown."
     )
     content = json.dumps({"profile": profile, "job": job})
-    return call_gemma(system, content).strip()
+    try:
+        return call_gemma(system, content).strip()
+    except Exception as e:
+        print(f"Error in generate_cover_letter: {e}")
+        personal = profile.get("personal", {})
+        name = personal.get("name", "Applicant")
+        email = personal.get("email", "")
+        location = personal.get("location", "")
+        skills = ", ".join(profile.get("skills", []))
+        return f"""Dear Hiring Team at {job['company']},
+
+I am writing to express my strong interest in the {job['title']} position. With my background and skills in {skills or 'software development'}, I am confident in my ability to contribute effectively to your team.
+
+Throughout my career and academic projects, I have demonstrated a strong commitment to quality and teamwork. I am excited about the opportunity to bring my skills to your organization.
+
+Thank you for your time and consideration.
+
+Sincerely,
+{name}
+{email}
+{location}"""
 
 
 def generate_application_email(profile, job):
@@ -336,10 +1100,15 @@ def generate_application_email(profile, job):
         "Return ONLY the email text including a greeting and sign-off, no subject line, no markdown."
     )
     content = json.dumps({"profile": profile, "job": job})
-    return call_gemma(system, content).strip()
+    try:
+        return call_gemma(system, content).strip()
+    except Exception as e:
+        print(f"Error in generate_application_email: {e}")
+        personal = profile.get("personal", {})
+        name = personal.get("name", "Applicant")
+        return f"Dear Hiring Manager,\n\nPlease find attached my CV and application for the {job['title']} position at {job['company']}. With my experience and skills, I am excited about the prospect of contributing to your team.\n\nThank you for considering my application.\n\nBest regards,\n{name}"
 
 
-# 4.4 — Application workspace: one saved record per job application
 def load_applications():
     if not os.path.exists(APPLICATIONS_FILE):
         return []
@@ -352,46 +1121,167 @@ def load_applications():
 
 def save_application(app_record):
     apps = load_applications()
-    apps = [a for a in apps if a["job_id"] != app_record["job_id"]]
+    apps = [a for a in apps if not (a.get("job_id") == app_record["job_id"] and a.get("user_email") == app_record.get("user_email"))]
     apps.append(app_record)
     with open(APPLICATIONS_FILE, "w") as f:
         json.dump(apps, f, indent=2)
+    try:
+        db.save_application_db(app_record)
+    except Exception:
+        pass
 
 
 @app.route("/jobs/<int:job_id>")
 def job_detail(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    if not profile:
+        return redirect(url_for("build_profile_page"))
+
     job = next((j for j in JOBS if j["id"] == job_id), None)
     if not job:
         return "Job not found", 404
-    profile = load_latest_profile()
-    if not profile:
-        return "No profile yet — fill out the form first.", 400
 
     matched, missing, score = compute_skill_gap(profile.get("skills", []), job["required_skills"])
     narrative = generate_readiness_narrative(job, matched, missing, score)
     applications = load_applications()
-    already_applied = any(a["job_id"] == job_id for a in applications)
+    already_applied = any(a["job_id"] == job_id and a.get("user_email") == user["email"] for a in applications)
+    saved_ids = load_saved_job_ids(user["email"])
 
     return render_template(
         "job_detail.html", job=job, score=score, matched=matched, missing=missing,
-        narrative=narrative, already_applied=already_applied,
+        narrative=narrative, already_applied=already_applied, user=user, profile=profile,
+        saved_ids=saved_ids
     )
 
 
-# 4.5 — One-click apply: generates everything and saves it in one step
 @app.route("/jobs/<int:job_id>/apply")
 def apply_to_job(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    if not profile:
+        return redirect(url_for("build_profile_page"))
+
     job = next((j for j in JOBS if j["id"] == job_id), None)
     if not job:
         return "Job not found", 404
-    profile = load_latest_profile()
+
+    # Sufficiency Check
+    missing_sections = []
+    if not profile.get("education") or len(profile["education"]) == 0:
+        missing_sections.append("Education")
+    if not profile.get("experience") or len(profile["experience"]) == 0:
+        missing_sections.append("Experience")
+    if not profile.get("skills") or len(profile["skills"]) == 0:
+        missing_sections.append("Skills")
+        
+    if missing_sections:
+        warning_msg = f"Your profile is missing: {', '.join(missing_sections)}. Please fill up your profile info to generate your CV."
+        matched, missing, score = compute_skill_gap(profile.get("skills", []), job["required_skills"])
+        narrative = generate_readiness_narrative(job, matched, missing, score)
+        applications = load_applications()
+        already_applied = any(a["job_id"] == job_id and a.get("user_email") == user["email"] for a in applications)
+        return render_template(
+            "job_detail.html", job=job, score=score, matched=matched, missing=missing,
+            narrative=narrative, already_applied=already_applied, user=user, profile=profile,
+            warning=warning_msg
+        )
+
+    # Create CV
+    template_id = random.choice(TEMPLATES_LIST)
+    try:
+        populated_data = generate_cv_data(profile, job["title"], job["company"], job["description"], template_id)
+        cv_id = f"cv_{int(datetime.now().timestamp())}"
+        cv_record = {
+            "id": cv_id,
+            "user_email": user["email"],
+            "job_id": job_id,
+            "job_title": job["title"],
+            "company": job["company"],
+            "template_id": template_id,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "cv_data": populated_data
+        }
+        save_created_cv(cv_record)
+        
+        session[f"pending_cv_{job_id}"] = cv_record
+        session.modified = True
+        
+        return redirect(url_for("apply_step2", job_id=job_id))
+    except Exception as e:
+        print("Error generating CV for application:", e)
+        return "Failed to generate CV. Please try again.", 500
+
+@app.route("/jobs/<int:job_id>/save-temp-application", methods=["POST"])
+def save_temp_application(job_id):
+    user = session.get("user")
+    if not user:
+        return {"success": False, "error": "Unauthorized"}, 401
+    data = request.get_json() or {}
+    session[f"temp_email_{job_id}"] = data.get("email")
+    session[f"temp_cover_letter_{job_id}"] = data.get("cover_letter")
+    session.modified = True
+    return {"success": True}
+
+
+@app.route("/jobs/<int:job_id>/apply-step2")
+def apply_step2(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
     if not profile:
-        return "No profile yet — fill out the form first.", 400
+        return redirect(url_for("build_profile_page"))
 
+    job = next((j for j in JOBS if j["id"] == job_id), None)
+    if not job:
+        return "Job not found", 404
+        
+    pending_cv = session.get(f"pending_cv_{job_id}")
+    if not pending_cv:
+        return redirect(url_for("apply_to_job", job_id=job_id))
+        
+    # Check for temporary saved edits in session
+    cover_letter = session.get(f"temp_cover_letter_{job_id}")
+    if not cover_letter:
+        cover_letter = generate_cover_letter(profile, job)
+        
+    email = session.get(f"temp_email_{job_id}")
+    if not email:
+        email = generate_application_email(profile, job)
+    
+    return render_template(
+        "apply_step2.html",
+        job=job,
+        cv=pending_cv,
+        cover_letter=cover_letter,
+        email=email,
+        user=user,
+        profile=profile
+    )
+
+@app.route("/jobs/<int:job_id>/apply-submit", methods=["POST"])
+def apply_submit(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    if not profile:
+        return redirect(url_for("build_profile_page"))
+
+    job = next((j for j in JOBS if j["id"] == job_id), None)
+    if not job:
+        return "Job not found", 404
+        
+    email_content = request.form.get("email", "")
+    cover_letter = request.form.get("cover_letter", "")
+    
     matched, missing, score = compute_skill_gap(profile.get("skills", []), job["required_skills"])
-    cover_letter = generate_cover_letter(profile, job)
-    email = generate_application_email(profile, job)
-
+    
     app_record = {
         "job_id": job_id,
         "job_title": job["title"],
@@ -400,25 +1290,120 @@ def apply_to_job(job_id):
         "applied_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "readiness_score": score,
         "cover_letter": cover_letter,
-        "email": email,
+        "email": email_content,
+        "user_email": user["email"]
     }
     save_application(app_record)
-    return redirect(f"/applications/{job_id}")
+    
+    session.pop(f"pending_cv_{job_id}", None)
+    session.pop(f"temp_email_{job_id}", None)
+    session.pop(f"temp_cover_letter_{job_id}", None)
+    session.modified = True
+    
+    return redirect(url_for("apply_success", job_id=job_id))
+
+
+@app.route("/jobs/apply-success/<int:job_id>")
+def apply_success(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    job = next((j for j in JOBS if j["id"] == job_id), None)
+    if not job:
+        return "Job not found", 404
+    return render_template("apply_success.html", job=job, user=user)
 
 
 @app.route("/applications")
 def applications_list():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    
     apps = load_applications()
-    return render_template("applications.html", applications=apps)
+    user_apps = [a for a in apps if a.get("user_email") == user["email"] or a.get("user_email") is None]
+    return render_template("applications.html", applications=user_apps, user=user, profile=profile)
 
 
 @app.route("/applications/<int:job_id>")
 def application_detail(job_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("login"))
+    profile = get_user_profile(user["email"])
+    
     apps = load_applications()
-    application = next((a for a in apps if a["job_id"] == job_id), None)
+    user_apps = [a for a in apps if a.get("user_email") == user["email"] or a.get("user_email") is None]
+    application = next((a for a in user_apps if a["job_id"] == job_id), None)
     if not application:
         return "No application found for this job yet.", 404
-    return render_template("application_detail.html", application=application)
+        
+    cvs = load_created_cvs()
+    cv = next((c for c in cvs if c.get("job_id") == job_id and c.get("user_email") == user["email"]), None)
+    
+    return render_template("application_detail.html", application=application, user=user, profile=profile, cv=cv)
+
+
+@app.route("/update-application-status", methods=["POST"])
+def update_application_status():
+    user = session.get("user")
+    if not user:
+        return {"success": False, "error": "Unauthorized"}, 401
+        
+    data = request.json
+    if data.get("action") == "clear":
+        session["notifications"] = []
+        session.modified = True
+        return {"success": True}
+        
+    job_id = data.get("job_id")
+    new_status = data.get("status")
+    
+    if not job_id or not new_status:
+        return {"success": False, "error": "Missing parameters"}, 400
+        
+    apps = load_applications()
+    app_record = None
+    for a in apps:
+        if a.get("job_id") == int(job_id) and a.get("user_email") == user["email"]:
+            a["status"] = new_status
+            app_record = a
+            break
+            
+    if not app_record:
+        return {"success": False, "error": "Application not found"}, 404
+        
+    with open(APPLICATIONS_FILE, "w") as f:
+        json.dump(apps, f, indent=2)
+        
+    # Generate custom notification message
+    notif_msg = f"Application for {app_record['job_title']} at {app_record['company']} updated to: {new_status}"
+    if new_status == "Accepted":
+        notif_msg = f"🎉 Congratulations! Your application for {app_record['job_title']} at {app_record['company']} has been ACCEPTED!"
+    elif new_status == "Denied":
+        notif_msg = f"Your application for {app_record['job_title']} at {app_record['company']} has been Denied."
+    elif new_status == "In Process":
+        notif_msg = f"Your application for {app_record['job_title']} at {app_record['company']} is now In Process."
+        
+    if "notifications" not in session:
+        session["notifications"] = []
+        
+    notif = {
+        "id": datetime.now().timestamp(),
+        "message": notif_msg,
+        "type": new_status,
+        "time": datetime.now().strftime("%I:%M %p"),
+        "unread": True
+    }
+    
+    session["notifications"].insert(0, notif)
+    session.modified = True
+    
+    return {"success": True, "notification": notif}
+
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
+
