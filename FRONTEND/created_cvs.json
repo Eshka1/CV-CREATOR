@@ -1,0 +1,342 @@
+[
+  {
+    "id": "cv_1784824242",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": 8,
+    "job_title": "Healthcare Data Assistant",
+    "company": "MediTrack",
+    "template_id": "sage_photo_block",
+    "created_at": "2026-07-23 22:30",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Healthcare Data Assistant",
+      "photo_url": "/static/uploads/profile_nowrin_tanhiad_g_bracu_ac_bd_af7f86542552588d58d06633655b0141.jpg",
+      "profile": "Detail-oriented Computer Science professional with a strong foundation in data analytics and database management. Proficient in SQL and Python for managing complex datasets and automating reporting workflows. Committed to ensuring high standards of data integrity and accuracy, specifically within healthcare environments, to support efficient patient record maintenance and organizational reporting.",
+      "skills": [
+        "SQL",
+        "Python",
+        "Data Analytics",
+        "Database Management",
+        "Automated Reporting",
+        "Data Integrity",
+        "Statistical Analysis",
+        "Microsoft Excel"
+      ],
+      "awards": [
+        {
+          "title": "Data Analytics Certification",
+          "org_year": "2025"
+        }
+      ],
+      "contact": {
+        "phone": "",
+        "email": "nowrin.tanhiad@g.bracu.ac.bd",
+        "website": ""
+      },
+      "experience": [
+        {
+          "role": "Project Collaborator",
+          "company": "Brac Art and Photography Society",
+          "dates": "",
+          "bullets": [
+            "Collaborated with multidisciplinary teams to coordinate organizational initiatives and large-scale projects.",
+            "Applied analytical problem-solving skills during technical hackathons to develop data-driven solutions.",
+            "Maintained organized documentation and contributed to team-based workflow optimization."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "school": "Brac University",
+          "degree": "Bachelor of Science in Computer Science and Engineering",
+          "dates": "",
+          "bullets": [
+            "Core focus on Database Systems, Algorithms, and Data Management."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "cv_1784828475",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": 8,
+    "job_title": "Healthcare Data Assistant",
+    "company": "MediTrack",
+    "template_id": "warm_geometric_split",
+    "created_at": "2026-07-23 23:41",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Healthcare Data Assistant | Data Analytics Professional",
+      "photo_url": "/static/uploads/profile_nowrin_tanhiad_g_bracu_ac_bd_af7f86542552588d58d06633655b0141.jpg",
+      "references": [],
+      "languages": [],
+      "skills": [
+        {
+          "name": "SQL",
+          "stars_out_of_5": 5
+        },
+        {
+          "name": "Python",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "Data Analytics",
+          "stars_out_of_5": 5
+        },
+        {
+          "name": "Data Management",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "Reporting & Documentation",
+          "stars_out_of_5": 3
+        }
+      ],
+      "education": [
+        {
+          "years": "",
+          "school": "Brac University",
+          "degree": "Bachelor of Science in Computer Science and Engineering",
+          "bullets": [
+            "Developed a strong technical foundation in data structures and algorithmic logic.",
+            "Focused on computational problem-solving and managing complex information systems."
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "years": "",
+          "company": "BRAC Art and Photography Society",
+          "role": "Project Collaborator",
+          "bullets": [
+            "Collaborated with diverse organizations to facilitate project workflows, ensuring high standards of organizational accuracy.",
+            "Applied rigorous analytical thinking and technical problem-solving skills through participation in competitive hackathons.",
+            "Managed information and project logistics with meticulous attention to detail and data integrity."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "cv_1784828528",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": 8,
+    "job_title": "Healthcare Data Assistant",
+    "company": "MediTrack",
+    "template_id": "warm_geometric_split",
+    "created_at": "2026-07-23 23:42",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Healthcare Data Assistant",
+      "photo_url": "/static/uploads/profile_nowrin_tanhiad_g_bracu_ac_bd_af7f86542552588d58d06633655b0141.jpg",
+      "references": [],
+      "languages": [],
+      "skills": [
+        {
+          "name": "SQL",
+          "stars_out_of_5": 5
+        },
+        {
+          "name": "Python",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "Data Analytics",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "Microsoft Excel",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "Data Management",
+          "stars_out_of_5": 4
+        }
+      ],
+      "education": [
+        {
+          "years": "",
+          "school": "Brac University",
+          "degree": "Bachelor of Science in Computer Science and Engineering",
+          "bullets": [
+            "Focus on database management, data structures, and computational logic.",
+            "Completed professional certification in Data Analytics (2025) focusing on dataset integrity and reporting."
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "years": "",
+          "company": "Brac Art and Photography Society",
+          "role": "Organizational Data & Collaboration Member",
+          "bullets": [
+            "Collaborated with diverse organizations to coordinate large-scale projects and events.",
+            "Maintained organized documentation and membership records to ensure operational efficiency.",
+            "Applied analytical problem-solving skills during technical hackathons to address complex data challenges."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "cv_1784835791",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": 11,
+    "job_title": "Mid-level Backend Engineer",
+    "company": "Cedarpoint Capital",
+    "template_id": "navy_gold_sidebar",
+    "created_at": "2026-07-24 01:43",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Mid-level Backend Engineer",
+      "photo_url": "https://i.pravatar.cc/150?img=33",
+      "about_me": "",
+      "contact": {
+        "phone": "+8801700000000",
+        "email": "nowrin.tanhiad@g.bracu.ac.bd",
+        "address": "Dhaka,Bangladesh"
+      },
+      "education": [
+        {
+          "school": "Brac University",
+          "degree": "CSE dep",
+          "years": ""
+        }
+      ],
+      "skills": [
+        "python",
+        "sql"
+      ],
+      "languages": [
+        "English",
+        "Bangla"
+      ],
+      "experience": [
+        {
+          "company": "brac art and phtoography soctiy",
+          "role": "",
+          "years": "",
+          "description": "Collaborated with various organizations and participated in hackathons.",
+          "bullets": [
+            "Collaborated with various organizations and participated in hackathons."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "cv_1784835824",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": 10,
+    "job_title": "Sales Development Rep",
+    "company": "LoudSpeak Media",
+    "template_id": "sage_photo_block",
+    "created_at": "2026-07-24 01:43",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Sales Development Rep",
+      "photo_url": "https://i.pravatar.cc/150?img=33",
+      "profile": "",
+      "skills": [
+        "python",
+        "sql"
+      ],
+      "awards": [
+        {
+          "title": "",
+          "org_year": ""
+        }
+      ],
+      "contact": {
+        "phone": "+8801700000000",
+        "email": "nowrin.tanhiad@g.bracu.ac.bd",
+        "address": "Dhaka,Bangladesh",
+        "website": "linkedin.com/in/nowrintanhiad"
+      },
+      "experience": [
+        {
+          "company": "brac art and phtoography soctiy",
+          "role": "",
+          "years": "",
+          "description": "Collaborated with various organizations and participated in hackathons.",
+          "bullets": [
+            "Collaborated with various organizations and participated in hackathons."
+          ]
+        }
+      ],
+      "education": [
+        {
+          "school": "Brac University",
+          "degree": "CSE dep",
+          "years": "",
+          "bullets": [
+            "Graduated with honors in "
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "cv_1784835882",
+    "user_email": "nowrin.tanhiad@g.bracu.ac.bd",
+    "job_id": null,
+    "job_title": "Frotend",
+    "company": "Google",
+    "template_id": "warm_geometric_split",
+    "created_at": "2026-07-24 01:44",
+    "cv_data": {
+      "name": "Nowrin Tanhiad",
+      "title": "Frotend",
+      "photo_url": "https://i.pravatar.cc/150?img=33",
+      "references": [
+        {
+          "name": "Dr. Rahman",
+          "company_role": "Professor at CSE, DU",
+          "phone": "+88015XXXXXXXX"
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "level_percent": 90
+        },
+        {
+          "name": "Bangla",
+          "level_percent": 100
+        }
+      ],
+      "skills": [
+        {
+          "name": "python",
+          "stars_out_of_5": 4
+        },
+        {
+          "name": "sql",
+          "stars_out_of_5": 4
+        }
+      ],
+      "education": [
+        {
+          "school": "Brac University",
+          "degree": "CSE dep",
+          "years": "",
+          "bullets": [
+            "Graduated with honors in "
+          ]
+        }
+      ],
+      "experience": [
+        {
+          "company": "brac art and phtoography soctiy",
+          "role": "",
+          "years": "",
+          "description": "Collaborated with various organizations and participated in hackathons.",
+          "bullets": [
+            "Collaborated with various organizations and participated in hackathons."
+          ]
+        }
+      ]
+    }
+  }
+]
